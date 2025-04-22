@@ -1,0 +1,17 @@
+#back_b2{
+    position: relative;
+    left: 10rem;
+    top:2rem;
+}#pdf_cont{
+    position: relative;
+    top: 9rem;
+    }
+@media (max-width: 1536px) and (min-width: 1281px) {
+
+}
+@media (min-width: 1920px) {
+#pdf_cont{
+    position: relative;
+    top: 15rem;
+}
+}

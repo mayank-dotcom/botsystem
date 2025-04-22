@@ -1,0 +1,18 @@
+@media (max-width: 1680px) and (min-width: 1440px) {
+#email-notifications{
+    position: relative;
+    left: -16rem;
+}
+#feedback-container{
+    height: 30rem;
+}
+}
+@media (max-width: 1280px) and (min-width: 1024px) and (min-resolution: 144dpi){
+#column2{
+    width: 20rem;
+}
+}
+@media (min-width: 1900px) {
+#column2{
+    width: 20rem;
+}}

@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+@media (max-width: 1536px) and (min-width: 1280px) {
+body{
+  scale: 115%;
+  overflow-x: hidden;
+  /* border: 12px solid blue; */
+
+}
+}
+@media (min-width: 1900px) {
+body{
+  position: relative;
+  top:16rem;
+  /* border:12px solid red; */
+  scale: 135%;
+  height: 100rem;
+  overflow-x: hidden;
+
+} 
+
+}
+@media (max-width: 1680px) and (min-width: 1440px) {
+  body{
+    overflow-x: hidden!important;
+   
+  }
+
+}

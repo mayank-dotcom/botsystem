@@ -1,0 +1,36 @@
+#searchfilter{
+    position: relative;
+    left: -2.8rem;
+    top: 1rem;
+}
+#conversation-list{
+    width: 25rem;
+}
+    #convos{
+        width: 27rem;
+    }
+@media (min-width: 1900px) {
+    #conversation-list{
+        width: 26rem;
+    }      #convos{
+        width: 32rem;
+    }
+
+    #searchfilter{
+        position: relative!important;
+        left: 0.5rem!important;
+       
+    }
+}
+@media (max-width: 1680px) and (min-width: 1440px) {
+#searchfilter{
+        
+        position: relative;
+        left: -17rem;
+        top: 0.5rem;
+    }#conversation-list{
+        width: 35rem;
+    }#convos{
+        width: 27.5rem;
+    }
+}

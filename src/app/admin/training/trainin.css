@@ -1,0 +1,144 @@
+
+
+@media (max-width: 1280px) and (min-width: 1024px) and (min-resolution: 144dpi){
+ #training-container{
+  position: relative;
+  top: -7rem;
+ }
+#doc-name{
+  width: 18rem;
+  overflow: hidden;
+  height: 1.5rem;
+}
+
+  #pdf_button{
+    position: relative;
+    left: 15rem;
+    top: -2rem;
+  }
+  #uploaded-documents{
+    width: 32.5rem;
+    max-height: 90rem!important;
+padding-bottom: 8vh;
+position: relative;
+left: 33.7rem;
+top: -33.5rem!important;
+  }
+
+  #doclist{
+  position: relative;
+  top: -1rem;
+
+  }
+  #pdf_url{
+    width: 35rem;
+  }
+  #bot-behavior{
+    height: 22.5rem;
+    width: 36rem;
+  }
+
+    #admindash{
+      position: relative;
+      /* border: 12px solid blue!important; */
+      /* left: -2rem; */
+    }
+    #dataoptions{
+        scale: 90%;
+        position: relative;
+        left: -3rem;
+        top: -2rem;
+        width: 90rem;
+    }
+   #uploaded-documents{
+    position: relative;
+    margin-top: -4rem;
+    height: 33.5rem!important;
+    overflow-y: scroll;
+   }
+   #pdf_ic{
+    position: relative;
+    top: -1rem;
+   }
+   #remove_bt{
+    position: relative;
+    top: -1rem;
+   }
+   #pdf-upload{
+    position: relative;
+    height: 23rem;
+   }
+  }
+  @media (min-width: 1900px) {
+    #dataoptions{
+      
+     scale: 85%;
+     position: relative;
+     left: -4.5rem;
+     top: -3rem;
+    }
+    #pdf-upload{
+      width: 35rem;
+    }
+    #bot-behavior{
+      width: 32.5rem;
+    }
+    #uploaded-documents{
+      position: relative;
+      top: -7rem;
+      overflow-y: scroll;
+      height: 13rem;
+     }
+#url-input{
+  position: relative;
+  top: -1rem;
+}
+#pdf_url{
+  width: 35rem;
+}
+#pdf_button{
+  position: relative;
+  left: 15rem;
+  top: -2rem;
+}
+  }
+  @media (max-width: 1680px) and (min-width: 1440px) {
+    #doc-name{
+      width: 18rem;
+      overflow: hidden;
+      height: 1.5rem;
+    }
+    #uploaded-documents{
+      position: relative;
+      margin-top: -13rem!important;
+      height: 13rem!important;
+      overflow-y: scroll;
+      width: 32rem;
+      left: 35.5rem;
+     }
+     #pdf-upload{
+      height: 22rem;
+     }
+    #pdf_url{
+      width: 35rem;
+      /* height: 20rem; */
+    }
+    #bot-behavior{
+      width: 32.1rem;
+      height: 22.5rem;
+
+    }
+    #pdf_button{
+      position: relative;
+      left: 15rem;
+      top: -2rem;
+    }
+    #do,#donts{
+      position: relative;
+      top: -1rem;
+    }
+    #dontlabel{
+      /* border: 2px solid red; */
+      width: 15rem;
+    }
+  }

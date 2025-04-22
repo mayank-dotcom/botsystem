@@ -1,0 +1,48 @@
+
+@media (max-width: 1280px) and (min-width: 1025px) {
+    #add_url{
+    position: fixed;
+    left: 32rem!important;
+    top:17.5rem;
+}#add_pdf{
+    position: fixed;
+    left: 37rem!important;
+    top:17.5rem;
+    font-size: 20px;
+}#set_behaviour{
+    position: fixed;
+    left: 42rem!important;
+    top:17.5rem;
+    font-size: 20px;
+}
+}
+@media (max-width: 1536px) and (min-width: 1281px) {
+       #add_url{
+    position: relative;
+    left: 47rem!important;
+    top:-22rem;
+    }
+    #add_pdf{
+        position: relative;
+        left: 42rem!important;
+        top:-25.5rem;
+
+    } #add_url, #add_pdf{
+        scale: 105%;
+    }
+}    
+@media (min-width: 1920px) {
+    #add_url{
+        position: relative;
+        left: 55rem;
+        scale: 105%;
+        top:-22rem;
+        } #add_pdf{
+            position: relative;
+            left: 60rem;
+            scale: 105%;
+            top:-25.5rem;
+
+
+        }
+}
