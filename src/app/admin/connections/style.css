@@ -49,9 +49,6 @@ max-height:30rem ;
 max-width: 60rem!important;
 overflow-y: scroll!important;
 }
-.modal-form{
-  /* overflow-y: scroll!important; */
-}
   .stat-label {
     font-size: 0.875rem;
     color: #6b7280;

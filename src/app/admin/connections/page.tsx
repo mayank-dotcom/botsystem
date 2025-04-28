@@ -257,6 +257,7 @@ export default function Connections() {
     try {
       // Prepare the connection data including bot behavior
       const connectionData: Product = {
+        url: newProduct.url || '', // Add required url property
         name: newProduct.name,
         imageUrl: newProduct.imageUrl,
         databases: selectedDatabases, // Use the selected databases array
@@ -292,7 +293,7 @@ export default function Connections() {
           const newConnection = {
             _id: response.data.insertedId,
             org_Id: orgId,
-            url: response.data.insertedId, // Set URL to the insertedId
+            // _id already set above, no need to set it again
             ...connectionData,
             imageUrl: connectionData.imageUrl || `https://via.placeholder.com/150?text=${encodeURIComponent(connectionData.name)}`,
           };
