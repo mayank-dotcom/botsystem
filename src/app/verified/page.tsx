@@ -1,11 +1,11 @@
 "use client"
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 
-export default function VerifiedPage() {
+function VerifiedPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -68,5 +68,13 @@ export default function VerifiedPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifiedPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifiedPageInner />
+    </Suspense>
   );
 }

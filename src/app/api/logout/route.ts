@@ -14,3 +14,4 @@ export async function GET(){
         return NextResponse.json("Something went wrong while logging out")
     }
 }
+export const dynamic = 'force-dynamic'

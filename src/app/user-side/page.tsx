@@ -3,13 +3,13 @@
 "use client"
 import './userside.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useState, useRef, Suspense } from 'react'
 import { toast } from "react-hot-toast"
-import React from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'next/navigation';
 
-export default function Userside() {
+// Inner component that uses useSearchParams
+function UsersideInner() {
   // State for userId and question
   interface UserState {
     question: string;
@@ -274,7 +274,7 @@ export default function Userside() {
   const containerClass = isEmbedded ? 'user-container-embedded' : 'user-container';
 
   return (
-    <div id={containerClass}>
+    <div className={containerClass}>
       <div id='chatsection'>
         {/* Show document selection at the start if no chat history */}
         {chatHistory.length === 0 && (
@@ -373,5 +373,14 @@ export default function Userside() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function Userside() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UsersideInner />
+    </Suspense>
   );
 }
