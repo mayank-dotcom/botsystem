@@ -1,13 +1,9 @@
-// import type { NextConfig } from "next";
-
-// const nextConfig: NextConfig = {
-//   transpilePackages: ["@langchain/community"]
-// };
-
-// export default nextConfig;
 /** @type {import('next').NextConfig} */
-
-const nextConfig  = {
+const nextConfig = {
+  // Remove any 'output: "export"' if it exists
+  // Add this to ensure server-side rendering is used
+  output: 'standalone',
+  
   transpilePackages: ["@langchain/community"],
   eslint: {
     ignoreDuringBuilds: true, // Disables ESLint checks during build
@@ -15,4 +11,4 @@ const nextConfig  = {
   output: "standalone", // Ensures all necessary files are included in the build
 };
 
-module.exports = nextConfig;
+module.exports = nextConfig
