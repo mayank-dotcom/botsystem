@@ -3,11 +3,12 @@
   const config = {
     apiBaseUrl: window.location.origin, // Will use the host site as base for API calls
     containerId: 'embedded-chatbot',
+    targetUrl: null, // New property to store manually provided URL
     chatbotStyles: `
       #embedded-chatbot-container {
         position: fixed;
         bottom: 20px;
-        left: 25rem;
+        right: 20px;
         width: 30rem!important;
         height: 500px;
         border-radius: 10px;
@@ -110,11 +111,12 @@
     const iframe = document.createElement('iframe');
     iframe.id = 'embedded-chatbot-iframe';
     
-    // Get current page URL and title
-    const currentUrl = encodeURIComponent(window.location.href);
+    // Get URL information - either from config or fallback to current page
+    const targetUrl = config.targetUrl || window.location.href;
+    const currentUrl = encodeURIComponent(targetUrl);
     const pageTitle = encodeURIComponent(document.title);
     
-    // Append URL parameters to the iframe src
+    // Append URL parameters to the iframe src - use absolute URL to ensure correct routing
     iframe.src = `http://localhost:3000/user-side?embedded=true&embedUrl=${currentUrl}&embedTitle=${pageTitle}`;
     
     // Assemble container
@@ -147,6 +149,18 @@
       fontAwesome.rel = 'stylesheet';
       fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
       document.head.appendChild(fontAwesome);
+    }
+
+    // Get the script tag that loaded this script
+    const scriptTags = document.querySelectorAll('script');
+    const currentScript = Array.from(scriptTags).find(script => 
+      script.src && script.src.includes('embed.js')
+    );
+
+    // Check if the script has a data-url attribute
+    if (currentScript && currentScript.dataset.url) {
+      config.targetUrl = currentScript.dataset.url;
+      console.log('Using manually provided URL:', config.targetUrl);
     }
 
     // Inject our styles

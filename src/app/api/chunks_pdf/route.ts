@@ -1,5 +1,5 @@
 import { MongoClient, Collection } from "mongodb";
-import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { CharacterTextSplitter } from "langchain/text_splitter";
 import { NextRequest, NextResponse } from "next/server";
@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
     chunkOverlap: 50,
   });
 
-  const embeddings = new HuggingFaceInferenceEmbeddings({
-    apiKey: process.env.HUGGINGFACEHUB_API_KEY as string,
-    model: "intfloat/multilingual-e5-large",
+  const embeddings = new OpenAIEmbeddings({
+    openAIApiKey: process.env.OPENAI_API_KEY as string,
+    modelName: "text-embedding-ada-002"
   });
 
   const client = new MongoClient(process.env.MONGODB_URI as string);
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       const text = doc.pageContent;
       const metadata = doc.metadata;
       
-      // Generate embedding for this chunk
+      // Generate embedding for this chunk using OpenAI
       const embedding = await embeddings.embedQuery(text);
       
       // Store in MongoDB
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         content: text,
         metadata: metadata,
         embedding: embedding,
-        org_Id: orgId // Add orgId to the document
+        org_Id: orgId
       });
     }
     

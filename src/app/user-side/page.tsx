@@ -23,6 +23,12 @@ export default function Userside() {
     timestamp?: Date;
   }
 
+  // Define interface for document items
+  interface DocumentItem {
+    id: number;
+    title: string;
+  }
+
   const generateUserId = () => {
     return "user_" + Math.random().toString(36).substr(2, 9);
   };
@@ -31,6 +37,9 @@ export default function Userside() {
   const [isEmbedded, setIsEmbedded] = useState(false);
   // Add state for embedding information
   const [embeddedInfo, setEmbeddedInfo] = useState({ url: '', title: '' });
+  // Add state for available documents
+  const [availableDocuments, setAvailableDocuments] = useState<DocumentItem[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -55,8 +64,55 @@ export default function Userside() {
       
       // Log the embedding information
       console.log('Chatbot embedded on:', decodeURIComponent(embedUrl));
+      
+      // Fetch documents for this URL
+      fetchDocumentsForUrl(decodeURIComponent(embedUrl));
     }
   }, [searchParams]);
+  
+  // Function to fetch documents for a specific URL
+  const fetchDocumentsForUrl = async (url: string) => {
+    try {
+      setIsLoadingDocuments(true);
+      
+      // Determine the base URL for API calls
+      let apiBaseUrl = '';
+      if (isEmbedded) {
+        // When embedded, we need to use the parent origin or a fixed API endpoint
+        apiBaseUrl = window.location.origin;
+      }
+      
+      const response = await axios.post(`${apiBaseUrl}/api/documents-for-url`, {
+        url: url
+      });
+      
+      if (response.data.documents && response.data.documents.length > 0) {
+        setAvailableDocuments(response.data.documents);
+        console.log("Documents fetched for URL:", response.data.documents);
+        
+        // Auto-select the first document if available
+        if (response.data.documents.length > 0) {
+          setUser(prev => ({ ...prev, rank: response.data.documents[0].id }));
+        }
+      } else {
+        // If no documents found for this URL, show an empty list instead of defaults
+        setAvailableDocuments([]);
+        console.log("No specific documents found for URL");
+        
+        // Reset rank to 0 since no documents are available
+        setUser(prev => ({ ...prev, rank: 0 }));
+      }
+    } catch (error) {
+      console.error("Error fetching documents for URL:", error);
+      // Show empty list on error instead of defaults
+      setAvailableDocuments([]);
+      
+      // Reset rank to 0 since no documents are available
+      setUser(prev => ({ ...prev, rank: 0 }));
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
 
   const [user, setUser] = useState<UserState>(() => {
     // Check if userId exists in localStorage, otherwise generate a new one
@@ -132,7 +188,8 @@ export default function Userside() {
         const result = await axios.post(`${apiBaseUrl}/api/use/`, {
           question: currentQuestion,
           userId: user.userId, // Include userId in the request
-          rank: user.rank
+          rank: user.rank,
+          embedUrl: isEmbedded && embeddedInfo.url ? embeddedInfo.url : null // Pass the embedded URL
         });
       
         if (result.data.text !== undefined) {
@@ -218,15 +275,47 @@ export default function Userside() {
 
   return (
     <div id={containerClass}>
-      {/* Display embedding information if available */}
-      {/* {isEmbedded && embeddedInfo.url && (
-        <div style={{ fontSize: '12px', padding: '5px', color: '#666', borderBottom: '1px solid #eee' }}>
-          Embedded on: {embeddedInfo.title || embeddedInfo.url}
-        </div>
-      )} */}
-      
       <div id='chatsection'>
-        {/* Map through the entire chat history */}
+        {/* Show document selection at the start if no chat history */}
+        {chatHistory.length === 0 && (
+          <div id='chatbox2'>
+            <div id='resp2'>
+              <i className="fa-solid fa-bolt" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
+              <div className="response-content" style={{ paddingLeft: "64px", color: "white", whiteSpace: "pre-wrap" }}>
+                <p style={{ marginBottom: "10px" }}>What do you want to discuss today ?</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  {isLoadingDocuments ? (
+                    <p>Loading documents...</p>
+                  ) : (
+                    availableDocuments.length > 0 ? (
+                      availableDocuments.map((doc) => (
+                        <button
+                          key={doc.id}
+                          onClick={() => setUser({...user, rank: doc.id})}
+                          style={{
+                            padding: "8px 16px",
+                            background: user.rank === doc.id ? "#4f46e5" : "#374151",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "20px",
+                            cursor: "pointer",
+                            marginBottom: "8px"
+                          }}
+                        >
+                          {doc.title}
+                        </button>
+                      ))
+                    ) : (
+                      <p>No documents available for this site</p>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Map through the chat history */}
         {chatHistory.map((item, index) => (
           <React.Fragment key={index}>
             <div id='chatbox1'>
@@ -235,17 +324,12 @@ export default function Userside() {
             <div id='chatbox2'>
               <div id='resp2'>
                 <i className="fa-solid fa-bolt" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
-                <ul className="bullet-list" style={{ listStyleType: "disc", paddingLeft: "64px", color: "white!important" }}>
-                  {item.response.split('\n')
-                    .filter(line => line.trim() !== '')
-                    .map((line, lineIndex) => (
-                      <li
-                        key={`${index}-${lineIndex}`}
-                        style={{ color: "white", marginBottom: "5px" }}
-                        dangerouslySetInnerHTML={{ __html: line }}
-                      />
-                    ))}
-                </ul>
+                <div className="response-content" style={{ paddingLeft: "64px", color: "white", whiteSpace: "pre-wrap" }}>
+                  <div 
+                    dangerouslySetInnerHTML={{ __html: item.response }}
+                    style={{ color: "white" }}
+                  />
+                </div>
               </div>
             </div>
           </React.Fragment>
@@ -259,15 +343,16 @@ export default function Userside() {
             <div className="keyboard"></div>
           </div>
         )}
-        <div ref={chatEndRef} /> {/* Reference for auto-scrolling */}
+        <div ref={chatEndRef} />
       </div>
+
       <div id="inputcontainer">
-        <div className="input-group dropup" id='inbar'>
+        <div className="input-group" id='inbar'>
           <input 
             type="text" 
             className="form-control" 
-            placeholder='Enter your query and select document name' 
-            aria-label="Text input with segmented dropdown button" 
+            placeholder='Enter your query...' 
+            aria-label="Text input with button" 
             onChange={(e) => setUser({ ...user, question: e.target.value })}
             value={user.question}
             onKeyPress={(e) => {
@@ -281,24 +366,10 @@ export default function Userside() {
             type="button" 
             className="btn btn-outline-secondary" 
             id='actionbt'
-            disabled={loading}
+            disabled={loading || user.rank === 0}
           >
             <i className="fa-solid fa-bolt"></i>
           </button>
-          <button 
-            type="button" 
-            className="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
-            data-bs-toggle="dropdown" 
-            aria-expanded="false" 
-            id='arrowbt'
-          >
-            <span className="visually-hidden">Toggle Dropdown</span>
-          </button>
-          <ul className="dropdown-menu dropdown-menu-end" id='ranksel' style={{backgroundColor: "white!important"}}>
-            <li id="one" onClick={() => setUser({...user, rank: 1})}>1</li>
-            <li id="two" onClick={() => setUser({...user, rank: 2})}>2</li>
-            <li id="three" onClick={() => setUser({...user, rank: 3})}>3</li>
-          </ul>
         </div>
       </div>
     </div>

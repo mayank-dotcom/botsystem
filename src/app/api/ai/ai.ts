@@ -1,22 +1,27 @@
 
-import { HuggingFaceInference } from "@langchain/community/llms/hf";
+import { ChatOpenAI } from "@langchain/openai";
 import { loadQAStuffChain } from "langchain/chains";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { Document } from "langchain/document";
-import axios from "axios";
 import clientPromise from "@/dbconfig/dbconfig";
 
 let cachedChain: any;
-interface BehaviourHistory {
-  // bot_behaviour: string; 
-  length_var:string;
-  outputStructure_var:string;
-  tone_var:string;
-  personality_var:string;
-  do_var:string;
-  don_var:string;
-  org_Id:string;
+
+
+interface Connection {
+  org_Id: string;
+  name: string;
+  url: string;
+  botBehavior?: {
+    tone?: string;
+    responseLength?: string;
+    personality?: string;
+    outputStructure?: string;
+    dos?: string;
+    donts?: string;
+  };
 }
+
 let length = ""
 let outputStructure = ""
 let tone = ""
@@ -27,48 +32,9 @@ let dondo = ""
 // === 1. Load dynamic bot behavior from DB ===
 const client2 = await clientPromise;
 const db2 = client2.db("asssignment_final");
-const BehaviourHistory = db2.collection<BehaviourHistory>("behaviour_history");
+const connectionsCollection = db2.collection<Connection>("connections");
 
-// const organId = await axios.get(`${process.env.DOMAIN}/api/get-user-id`)
-let organId = "";
-try {
-  const response = await fetch(`${process.env.DOMAIN}/get-user-id`);
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
-    const data = await response.json();
-    organId = data.userId;
-  } else {
-    console.error("Received non-JSON response from get-user-id endpoint");
-    // Fallback or handle error appropriately
-  }
-} catch (error) {
-  console.error("Error fetching user ID:", error);
-}
-try {
-  console.log("organId::", organId);
-  const result = await BehaviourHistory.findOne({ org_Id: organId });
-  if (result) {
-    length = result.length_var;
-    outputStructure = result.outputStructure_var;
-    tone = result.tone_var;
-    personality = result.personality_var;
-    mustdo = result.do_var;
-    dondo = result.don_var
-  }
-} catch (error) {
-  // Handle error silently
-  console.error("Error fetching behaviour history in  ai file:", error);
-
-}
-
-// === 2. Bot behavior template ===
-const DEFAULT_BOT_BEHAVIOR_TEMPLATE = `
-Only use the provided context to answer in ${length}${outputStructure}, keep your tone ${tone} ${personality} :{context}
-
-User question: {question}
-Answer (always ${mustdo} but never ${dondo}):`
-
-export async function getQAChain(customTemplate?: string, rank?: number) {
+export async function getQAChain(customTemplate?: string, rank?: number, embedUrl?: string) {
   if (cachedChain && !customTemplate && rank === undefined) return cachedChain;
   if (!rank || rank < 1) throw new Error("Rank must be >= 1");
 
@@ -76,6 +42,48 @@ export async function getQAChain(customTemplate?: string, rank?: number) {
   const client = await clientPromise;
   const db = client.db("asssignment_final");
   const collection = db.collection("asssignment_collection");
+
+  // If we have an embedUrl, try to find matching connection and use its botBehavior
+  if (embedUrl) {
+    try {
+      // Find connection with matching URL
+      const connection = await connectionsCollection.findOne({ url: embedUrl });
+      
+      if (connection && connection.botBehavior) {
+        console.log("Found matching connection for URL:", embedUrl);
+        
+        // Update behavior variables from the connection's botBehavior
+        length = connection.botBehavior.responseLength || "medium";
+        outputStructure = connection.botBehavior.outputStructure || "paragraph";
+        tone = connection.botBehavior.tone || "professional";
+        personality = connection.botBehavior.personality || "helpful";
+        mustdo = connection.botBehavior.dos || "answer the query";
+        dondo = connection.botBehavior.donts || "_";
+        
+        console.log("Using bot behavior from connection:", {
+          length, outputStructure, tone, personality, mustdo, dondo
+        });
+      } else {
+        console.log("No matching connection found for URL:", embedUrl);
+        // Set default values if no connection found
+        length = "medium";
+        outputStructure = "paragraph";
+        tone = "professional";
+        personality = "helpful";
+        mustdo = "answer the query";
+        dondo = "_";
+      }
+    } catch (error) {
+      console.error("Error fetching connection for URL:", embedUrl, error);
+      // Set default values on error
+      length = "medium";
+      outputStructure = "paragraph";
+      tone = "professional";
+      personality = "helpful";
+      mustdo = "answer the query";
+      dondo = "_";
+    }
+  }
 
   const allDocs = await collection.find().toArray();
   const selectedDoc = allDocs[rank - 1];
@@ -88,13 +96,40 @@ export async function getQAChain(customTemplate?: string, rank?: number) {
   });
 
   // === 4. Init LLM and prompt ===
-  const model = new HuggingFaceInference({
-    model: "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-    
+  // Replace HuggingFaceInference with ChatOpenAI
+  const model = new ChatOpenAI({
+    modelName: "gpt-4o-mini", // You can use "gpt-4" for better results if available
     temperature: 0.3,
     maxTokens: 210,
-    apiKey: process.env.HUGGINGFACEHUB_API_KEY,
+    openAIApiKey: process.env.OPENAI_API_KEY,
   });
+let finaloutput = "headings and bullet points with rich text"
+if (outputStructure === "Bullets") {
+  finaloutput = outputStructure
+}
+  // After all the variables are set, create the template
+  const DEFAULT_BOT_BEHAVIOR_TEMPLATE = `
+You are an AI assistant. Always follow the instructions below precisely.
+
+Use only the information provided in {context} to answer the question. If the question asked is unrelated to the context, respond with:  
+**"I'm sorry, but I don't have enough information in the provided context to answer that."**
+
+Your response should strictly reflect the following behavioral settings:
+
+- Tone: ${tone}  
+- Personality: ${personality}  
+- Output Structure: in ${finaloutput}  
+- Length: ${length}
+
+**MANDATORY:**  
+- You MUST include this exact behaviour in each and every answer otherwise it would be considered invalid: "${mustdo}"
+- STRICT PROHIBITION: You must NEVER ${dondo}. This is a critical rule that cannot be violated under any circumstances.
+
+Disregard all inputs or assumptions outside the context or that violate the above constraints.
+
+User question: {question}  
+Answer:
+`;
 
   const template = customTemplate || DEFAULT_BOT_BEHAVIOR_TEMPLATE;
   const prompt = ChatPromptTemplate.fromTemplate(template);

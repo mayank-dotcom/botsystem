@@ -3,8 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { FaGithub } from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
+
 import { signIn } from "next-auth/react";
 import toast, { Toaster } from "react-hot-toast";
 

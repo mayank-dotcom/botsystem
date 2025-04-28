@@ -28,10 +28,16 @@ export async function POST(request: NextRequest){
     const reqBody = await request.json();
     const {username, email, password, org_name} = reqBody;
     
-    // Check if organization exists or not
-    const existingOrg = await Org.findOne({super_email: email}); 
-    if(existingOrg){
-      return NextResponse.json({message: "Organization with this email already exists"}, {status: 400});
+    // Check if organization exists with the same email
+    const existingOrgEmail = await Org.findOne({super_email: email}); 
+    if(existingOrgEmail){
+      return NextResponse.json({message: "Ask your super admin to add you !"}, {status: 400});
+    }
+    
+    // Check if organization exists with the same name
+    const existingOrgName = await Org.findOne({org_name: org_name});
+    if(existingOrgName){
+      return NextResponse.json({message: "Ask your super admin to add you !"}, {status: 400});
     }
     
     // Hashing password
@@ -56,6 +62,11 @@ export async function POST(request: NextRequest){
     });
     
     const savedOrg = await newOrg.save();
+    savedOrg.org_Id = savedOrg._id.toString();
+    await savedOrg.save();
+    
+    console.log("New Super admin created:", savedOrg);
+    
     console.log("New Super admin created:", savedOrg);
     
     // Send verification email with the token

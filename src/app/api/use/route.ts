@@ -13,6 +13,8 @@ interface ConversationHistory {
   question: string;
   response: string;
   timestamp: Date;
+  org_Id?: string;  // Added optional org_Id field
+  url?: string;     // Added optional url field
 }
 
 export async function POST(request: NextRequest) {
@@ -23,10 +25,11 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db("asssignment_final");
     const historyCollection = db.collection<ConversationHistory>("conversation_history");
+    const assignmentCollection = db.collection("asssignment_collection");
 
     // 2. Parse request
     const reqBody = await request.json();
-    const { question, userId, behaviorTemplate, rank } = reqBody;
+    const { question, userId, behaviorTemplate, rank, embedUrl } = reqBody;
 
     if (!userId) {
       return NextResponse.json(
@@ -35,31 +38,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch and log current behavior settings for this user
-    try {
-      const behaviorCollection = db.collection("behaviour_history");
-      const currentBehavior = await behaviorCollection.findOne({ org_Id: userId });
+    // Check if embedUrl exists and find matching document in assignment collection
+    let matchedOrgId = null;
+    let matchedUrl = null;
+    
+    if (embedUrl) {
+      console.log("Checking for URL match in assignment collection:", embedUrl);
       
-      if (currentBehavior) {
-        console.log("🤖 Current Bot Behavior Settings:");
-        console.log({
-          length: currentBehavior.length_var,
-          outputStructure: currentBehavior.outputStructure_var,
-          tone: currentBehavior.tone_var,
-          personality: currentBehavior.personality_var,
-          mustDo: currentBehavior.do_var,
-          dontDo: currentBehavior.don_var,
-          orgId: currentBehavior.org_Id
+      // First try to find a direct match with the url field
+      const matchingDocument = await assignmentCollection.findOne({ 
+        url: embedUrl 
+      });
+      
+      // If no match found with url field, try with metadata.source
+      if (!matchingDocument) {
+        const metadataMatch = await assignmentCollection.findOne({ 
+          "metadata.source": embedUrl 
         });
+        
+        if (metadataMatch) {
+          console.log("Found matching document with metadata.source:", embedUrl);
+          matchedOrgId = metadataMatch.org_Id;
+          matchedUrl = embedUrl;
+        } else {
+          console.log("No matching document found for URL:", embedUrl);
+        }
       } else {
-        console.log("⚠️ No behavior settings found for user:", userId);
+        console.log("Found matching document with URL field:", embedUrl);
+        matchedOrgId = matchingDocument.org_Id;
+        matchedUrl = embedUrl;
       }
-    } catch (behaviorError) {
-      console.error("Error fetching behavior settings:", behaviorError);
     }
 
-    // 3. Get chain and process query with optional behavior template
-    const chain = await getQAChain(behaviorTemplate, rank); 
+    // 3. Get chain and process query with optional behavior template and embedUrl
+    const chain = await getQAChain(behaviorTemplate, rank, embedUrl); 
     console.log("⏳ Processing query...");
 
     let responseText: string;
@@ -82,14 +94,29 @@ export async function POST(request: NextRequest) {
       responseText = "API limit reached. Please try again later.";
     }
 
-    // 4. Store history
+    // 4. Store history with org_Id and url if matched
     try {
-      await historyCollection.insertOne({
+      const historyEntry: ConversationHistory = {
         userId,
         question,
         response: responseText,
         timestamp: new Date(),
-      });
+      };
+      
+      // Add org_Id and url to history entry if matched
+      if (matchedOrgId) {
+        historyEntry.org_Id = matchedOrgId;
+      }
+      
+      if (matchedUrl) {
+        historyEntry.url = matchedUrl;
+      }
+      
+      await historyCollection.insertOne(historyEntry);
+      console.log("Saved conversation history with additional fields:", 
+        matchedOrgId ? "org_Id: " + matchedOrgId : "No org_Id match",
+        matchedUrl ? "url: " + matchedUrl : "No URL match"
+      );
     } catch (storageError) {
       console.error("History storage error:", storageError);
     }

@@ -56,64 +56,54 @@ export default function TrainingManagement() {
     fetchDocumentsFromDb();
   }, []);
 
-  // Fetch user ID on component mount
+  // Fetch user's organization ID on component mount
+  // Replace the useEffect that fetches orgId with this:
   useEffect(() => {
-    const fetchUserId = async () => {
-        try {
-            const response = await fetch('/api/get-user-id');
-            const data = await response.json();
-            if (data.success) {
-                setOrgId(data.userId);
-                console.log('User ID:', data.userId);
-
-                // First create behavior
-                const behaviorRes = await axios.post('/api/create-behaviour', {
-                    length: "medium",
-                    outputStructure: "paragraph",
-                    tone: "professional",
-                    personality: "helpful",
-                    mustdo: "answer the query",
-                    dondo: "_",
-                    orgId: data.userId
-                });
-
-                if (behaviorRes.data?.insertedId) {
-                    console.log("Bot behaviour created successfully, ID:", behaviorRes.data.insertedId);
-                    
-                    // Then fetch organization name
-                    const orgNameResponse = await fetch('/api/get-org-name');
-                    const orgNameData = await orgNameResponse.json();
-                    
-                    if (orgNameData.success) {
-                        console.log('Organization name:', orgNameData.org_name);
-                        
-                        // Then create organization
-                        const orgRes = await axios.post('/api/create_new_org', {
-                            name: orgNameData.org_name,
-                            orgId: data.userId
-                        });
-                        
-                        if (orgRes.data?.insertedId) {
-                            console.log('Organization created successfully:', orgRes.data.insertedId);
-                        } else {
-                            console.error('Failed to create organization:', orgRes.data);
-                        }
-                    } else {
-                        console.error('Failed to fetch organization name:', orgNameData);
-                    }
-                } else {
-                    console.error("Failed to create bot behaviour:", behaviorRes.data);
-                }
-            }
-        } catch (error: any) {
-            console.error('Error in initialization sequence:', 
-                error?.response?.data || error?.message || 'Unknown error'
-            );
-        }
-    };
-
-    fetchUserId();
-}, []);
+      const fetchOrgId = async () => {
+          try {
+              const response = await fetch('/api/get-user-id');
+              const data = await response.json();
+              if (data.success) {
+                  // Get the organization ID associated with the user
+                  const orgResponse = await fetch('/api/get-org-details', {
+                      headers: {
+                          'user-id': data.userId
+                      }
+                  });
+                  const orgData = await orgResponse.json();
+                  if (orgData.success) {
+                      setOrgId(orgData.orgId);
+                      console.log('Organization ID:', orgData.orgId);
+  
+                      // First create behavior
+                      const behaviorRes = await axios.post('/api/create-behaviour', {
+                          length: "medium",
+                          outputStructure: "paragraph",
+                          tone: "professional",
+                          personality: "helpful",
+                          mustdo: "answer the query",
+                          dondo: "_",
+                          orgId: orgData.orgId
+                      });
+  
+                      if (behaviorRes.data?.insertedId) {
+                          console.log("Bot behaviour created successfully, ID:", behaviorRes.data.insertedId);
+                      } else {
+                          console.error("Failed to create bot behaviour:", behaviorRes.data);
+                      }
+                  } else {
+                      console.error('Failed to fetch organization details');
+                  }
+              }
+          } catch (error: any) {
+              console.error('Error in initialization sequence:', 
+                  error?.response?.data || error?.message || 'Unknown error'
+              );
+          }
+      };
+  
+      fetchOrgId();
+  }, []);
   
   // Function to fetch documents from the database
   const fetchDocumentsFromDb = async () => {

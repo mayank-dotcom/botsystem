@@ -5,6 +5,8 @@ interface orgnameSchema {
     // bot_behaviour: string; 
 org_name:string;
     org_Id:string;
+
+
 }
 export async function POST(req: NextRequest) {
     try {
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
             
             const result = await collection.insertOne({
                 org_name: name,
-                org_Id: orgId
+                org_Id: orgId,
             });
             
             console.log('Insertion successful, document ID:', result.insertedId);

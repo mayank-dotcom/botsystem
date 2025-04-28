@@ -242,7 +242,7 @@ async function countTotalTokens() {
 
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
-    const documents = await collection.find({}, { projection: { text: 1 } }).toArray();
+    const documents = await collection.find({}, { projection: { content: 1 } }).toArray();
 
     if (!documents.length) {
       console.log("No documents found in the collection");
@@ -261,11 +261,11 @@ async function countTotalTokens() {
     let documentTokenCounts = [];
     
     for (const doc of documents) {
-      if (doc.text && typeof doc.text === "string") {
+      if (doc.content && typeof doc.content === "string") {
         console.log(`Processing document ${doc._id}...`);
         try {
-          const tokenCount = await countTokensGPT4(doc.text);
-          const charCount = countCharacters(doc.text);
+          const tokenCount = await countTokensGPT4(doc.content);
+          const charCount = countCharacters(doc.content);
           totalInputTokens += tokenCount;
           totalCharacters += charCount;
           documentTokenCounts.push({ id: doc._id, tokens: tokenCount, characters: charCount });
@@ -278,8 +278,8 @@ async function countTotalTokens() {
             let docTokens = 0;
             let docChars = 0;
             const microChunkSize = 100;
-            for (let i = 0; i < doc.text.length; i += microChunkSize) {
-              const microChunk = doc.text.substring(i, i + microChunkSize);
+            for (let i = 0; i < doc.content.length; i += microChunkSize) {
+              const microChunk = doc.content.substring(i, i + microChunkSize);
               const chunkTokens = await countTokensGPT4(microChunk);
               const chunkChars = countCharacters(microChunk);
               docTokens += chunkTokens;
@@ -295,7 +295,7 @@ async function countTotalTokens() {
           }
         }
       } else {
-        console.warn(`Skipping invalid text in doc ${doc._id}`);
+        console.warn(`Skipping invalid content in doc ${doc._id}`);
         documentTokenCounts.push({ id: doc._id, tokens: 0, characters: 0, invalid: true });
       }
     }

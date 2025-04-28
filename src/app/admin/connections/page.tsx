@@ -23,7 +23,7 @@ interface Product {
   url: string;
   imageUrl?: string;
   org_Id?: string;
-  database?: string;
+  databases?: string[]; // Changed from database to databases array
   useCustomPrompt?: boolean;
   customPrompt?: string;
   botBehavior?: {
@@ -63,27 +63,27 @@ export default function Connections() {
     donts: '',
   });
   const [updatingBehavior, setUpdatingBehavior] = useState(false);
+  const [selectedDatabases, setSelectedDatabases] = useState<string[]>([]); // New state for multiple databases
 
   const [newProduct, setNewProduct] = useState({
     name: '',
     url: '',
     imageUrl: '',
-    database: '',
   });
 
   useEffect(() => {
     const fetchUserIdAndConnections = async () => {
       try {
-        const response = await axios.get('/api/get-user-id');
+        const response = await axios.get('/api/get-org-details');
         if (response.data.success) {
-          const userId = response.data.userId;
-          setOrgId(userId);
-          await fetchConnections(userId);
-          await fetchDatasets(userId);
+          const orgId = response.data.orgId;
+          setOrgId(orgId);
+          await fetchConnections(orgId);
+          await fetchDatasets(orgId);
         }
       } catch (error) {
-        console.error('Error fetching user ID:', error);
-        toast.error('Failed to fetch user ID');
+        console.error('Error fetching organization details:', error);
+        toast.error('Failed to fetch organization details');
         setIsFetching(false);
       }
     };
@@ -96,7 +96,11 @@ export default function Connections() {
     try {
       const response = await axios.get(`/api/datasets?orgId=${userId}`);
       if (response.data.success) {
-        setDatasets(response.data.datasets);
+        // Filter datasets to only include those that belong to the current organization
+        const filteredDatasets = response.data.datasets.filter((dataset: Dataset) => 
+          dataset.org_Id === userId
+        );
+        setDatasets(filteredDatasets);
       } else {
         console.error('Failed to fetch datasets:', response.data.message);
         toast.error('Failed to load datasets');
@@ -109,10 +113,10 @@ export default function Connections() {
     }
   };
 
-  const fetchConnections = async (userId: string) => {
+  const fetchConnections = async (orgId: string) => {
     setIsFetching(true);
     try {
-      const response = await axios.get(`/api/connections?orgId=${userId}`);
+      const response = await axios.get(`/api/connections?orgId=${orgId}`);
       if (response.data.success) {
         const formattedConnections = response.data.connections.map((conn: any) => ({
           _id: conn._id,
@@ -120,7 +124,7 @@ export default function Connections() {
           url: conn.url,
           imageUrl: conn.imageUrl || `https://via.placeholder.com/150?text=${encodeURIComponent(conn.name)}`,
           org_Id: conn.org_Id,
-          database: conn.database,
+          databases: conn.databases || [],
           useCustomPrompt: conn.useCustomPrompt,
           customPrompt: conn.customPrompt,
           botBehavior: conn.botBehavior,
@@ -149,7 +153,8 @@ export default function Connections() {
   const handleAddConnection = () => {
     setIsEditMode(false);
     setCurrentProductId(null);
-    setNewProduct({ name: '', url: '', imageUrl: '', database: '' });
+    setNewProduct({ name: '', url: '', imageUrl: '' });
+    setSelectedDatabases([]); // Reset selected databases
     setIsModalOpen(true);
   };
 
@@ -160,8 +165,9 @@ export default function Connections() {
       name: product.name,
       url: product.url,
       imageUrl: product.imageUrl || '',
-      database: product.database || '',
     });
+    // Set selected databases
+    setSelectedDatabases(product.databases || []);
     // Set bot behavior configuration
     setUseCustomPrompt(product.useCustomPrompt || false);
     setCustomPrompt(product.customPrompt || '');
@@ -169,6 +175,52 @@ export default function Connections() {
       setBotBehavior(product.botBehavior);
     }
     setIsModalOpen(true);
+  };
+
+  // Handle database selection
+  const handleDatabaseSelection = (content: string) => {
+    setSelectedDatabases(prev => {
+      if (prev.includes(content)) {
+        return prev.filter(db => db !== content);
+      } else {
+        return [...prev, content];
+      }
+    });
+  };
+
+  // Filter datasets to show only those not connected to other URLs
+  const getAvailableDatasets = () => {
+    if (!datasets || !products) return [];
+    
+    // Get all datasets that are connected to any URL
+    const connectedDatasets = new Map();
+    
+    products.forEach(product => {
+      if (product.databases && product.databases.length > 0) {
+        product.databases.forEach(db => {
+          // If we're in edit mode, don't exclude datasets connected to the current URL
+          if (isEditMode && product._id === currentProductId) {
+            return;
+          }
+          connectedDatasets.set(db, product.url);
+        });
+      }
+    });
+    
+    // Filter datasets to only show those not connected to other URLs
+    return datasets.filter(dataset => {
+      // If the dataset is not connected to any URL, show it
+      if (!connectedDatasets.has(dataset.content)) {
+        return true;
+      }
+      
+      // If we're in edit mode and the dataset is connected to the current URL, show it
+      if (isEditMode && connectedDatasets.get(dataset.content) === newProduct.url) {
+        return true;
+      }
+      
+      return false;
+    });
   };
 
   const handleBehaviorUpdate = async () => {
@@ -206,9 +258,8 @@ export default function Connections() {
       // Prepare the connection data including bot behavior
       const connectionData: Product = {
         name: newProduct.name,
-        url: newProduct.url,
         imageUrl: newProduct.imageUrl,
-        database: newProduct.database,
+        databases: selectedDatabases, // Use the selected databases array
         useCustomPrompt: useCustomPrompt,
         customPrompt: useCustomPrompt ? customPrompt : '',
         botBehavior: !useCustomPrompt ? botBehavior : null,
@@ -241,6 +292,7 @@ export default function Connections() {
           const newConnection = {
             _id: response.data.insertedId,
             org_Id: orgId,
+            url: response.data.insertedId, // Set URL to the insertedId
             ...connectionData,
             imageUrl: connectionData.imageUrl || `https://via.placeholder.com/150?text=${encodeURIComponent(connectionData.name)}`,
           };
@@ -251,7 +303,8 @@ export default function Connections() {
         }
       }
       // Reset form
-      setNewProduct({ name: '', url: '', imageUrl: '', database: '' });
+      setNewProduct({ name: '', url: '', imageUrl: '' });
+      setSelectedDatabases([]);
       setUseCustomPrompt(false);
       setCustomPrompt('');
       setBotBehavior({
@@ -338,10 +391,24 @@ export default function Connections() {
               </div>
               <div className="product-details">
                 <h3 className="product-name">{product.name}</h3>
-                <a href={product.url} target="_blank" rel="noopener noreferrer" className="product-url">
-                  <GlobeAltIcon className="h-4 w-4 inline-block mr-1" />
-                  {product.url}
-                </a>
+                <div className="embed-code-container">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Copy this code to embed the chatbot:</p>
+                  <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto">
+                    {`<div id="embedded-chatbot"></div>\n\n<!-- Correct script tag -->\n<script src="http://localhost:3000/embed.js" data-url="${product._id}"></script>`}
+                  </pre>
+                  <button 
+                    className="mt-2 text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `<!-- Add this div to contain the embedded chatbot -->\n<div id="embedded-chatbot"></div>\n\n<!-- Correct script tag -->\n<script src="http://localhost:3000/embed.js" data-url="${product._id}"></script>`
+                      );
+                      toast.success('Embed code copied to clipboard!');
+                    }}
+                  >
+                    <LinkIcon className="h-3 w-3 inline-block mr-1" />
+                    Copy Code
+                  </button>
+                </div>
               </div>
               <div className="product-actions">
                 <button className="action-button edit" onClick={() => handleEditConnection(product)}>
@@ -386,20 +453,6 @@ export default function Connections() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="url">Website URL</label>
-                <input
-                  type="url"
-                  id="url"
-                  name="url"
-                  value={newProduct.url}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="https://example.com"
-                  className="form-input"
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="form-group">
                 <label htmlFor="imageUrl">Image URL (optional)</label>
                 <input
                   type="url"
@@ -415,24 +468,30 @@ export default function Connections() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="database">Available Datasets</label>
-                <select
-                  id="database"
-                  name="database"
-                  value={newProduct.database}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  disabled={isLoading || isLoadingDatasets}
-                >
-                  <option value="">Select a dataset</option>
-                  {datasets.map((dataset) => (
-                    <option key={dataset._id} value={dataset.content}>
-                      {dataset.content}
-                    </option>
-                  ))}
-                </select>
-                {isLoadingDatasets && <p className="form-help">Loading datasets...</p>}
-                {!isLoadingDatasets && datasets.length === 0 && <p className="form-help">No datasets available</p>}
+                <label>Select Datasets</label>
+                {isLoadingDatasets ? (
+                  <p>Loading datasets...</p>
+                ) : datasets.length === 0 ? (
+                  <p>No datasets available</p>
+                ) : (
+                  <div className="datasets-container">
+                    {getAvailableDatasets().map((dataset) => (
+                      <div key={dataset._id} className="dataset-checkbox">
+                        <input
+                          type="checkbox"
+                          id={`dataset-${dataset._id}`}
+                          checked={selectedDatabases.includes(dataset.content)}
+                          onChange={() => handleDatabaseSelection(dataset.content)}
+                          disabled={isLoading}
+                        />
+                        <label htmlFor={`dataset-${dataset._id}`}>{dataset.content}</label>
+                      </div>
+                    ))}
+                    {getAvailableDatasets().length === 0 && (
+                      <p className="text-sm text-gray-500">No available datasets found. All datasets are connected to other URLs.</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

@@ -1,22 +1,35 @@
 import mongoose from "mongoose";
+
 const orgSchema = new mongoose.Schema({
-    org_name:{
-        type:String,
-        required:[true,"Please enter an organization name"], 
+    org_name: {
+        type: String,
+        required: [true, "Please enter an organization name"],
     },
-    super_email:{
-        type:String,
-        required:[true,"Please enter an email"],
-        unique:true 
+    org_Id: {
+        type: String,
+     
     },
-    super_password:{
-        type:String,
-        required:[true,"Please enter a password"],
+    super_email: {
+        type: String,
+        required: [true, "Please enter an email"],
+        unique: true
     },
-    isSuper:{
-        type:Boolean,
-        required:true,
-        default:true,
+    super_password: {
+        type: String,
+        required: [true, "Please enter a password"],
+    },
+    email: {
+        type: String,
+        unique: true,
+        sparse: true // Allows null/undefined values to not trigger uniqueness constraint
+    },
+    password: {
+        type: String,
+    },
+    isSuper: {
+        type: Boolean,
+        required: true,
+        default: true,
     },
     isVerified: {
         type: Boolean,
@@ -24,21 +37,15 @@ const orgSchema = new mongoose.Schema({
     },
     verifyToken: {
         type: String,
-        index: true  // Add index for faster queries
+        index: true
     },
     verifyTokenExpiry: {
         type: Date,
-        index: true  // Add index for faster queries
+        index: true
     },
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date
-}, { timestamps: true });  // Add timestamps for better tracking
+}, { timestamps: true });
 
-// Add a method to check if a token is valid
-orgSchema.methods.isTokenValid = function(token) {
-    return this.verifyToken === token && this.verifyTokenExpiry > Date.now();
-};
-
-// Using Mongoose approach
 const Org = mongoose.models.org_collection || mongoose.model("org_collection", orgSchema);
 export default Org;

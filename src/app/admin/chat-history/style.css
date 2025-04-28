@@ -33,4 +33,13 @@
     }#convos{
         width: 27.5rem;
     }
+}@media (max-width: 1280px) and (min-width: 1024px) and (min-resolution: 144dpi){
+    #convos{
+        height: 20rem;
+    }
+    #conversation-list{
+    height: 20rem;
+    overflow-y: scroll;
+
+    }
 }

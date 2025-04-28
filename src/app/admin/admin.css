@@ -213,6 +213,17 @@ h1.dashboard-title {
 
 /* Responsive adjustments */
 @media (min-width: 1280px) {
+  #admin-manage{
+    width: 40rem;
+    max-height: 26rem!important;
+    overflow-y: scroll!important;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+  }
+  #new-box{
+    width: 14rem;
+    max-height: 26rem!important;
+  }
   .sidebar {
     width: 180px;
     min-height: 70rem;
