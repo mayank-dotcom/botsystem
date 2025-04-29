@@ -128,7 +128,7 @@
     const pageTitle = encodeURIComponent(document.title);
     
     // Append URL parameters to the iframe src - use absolute URL to ensure correct routing
-    iframe.src = `http://localhost:3000/user-side?embedded=true&embedUrl=${currentUrl}&embedTitle=${pageTitle}`;
+    iframe.src = `${process.env.NEXT_PUBLIC_DOMAIN}/user-side?embedded=true&embedUrl=${currentUrl}&embedTitle=${pageTitle}`;
     
     // Assemble container
     container.appendChild(header);

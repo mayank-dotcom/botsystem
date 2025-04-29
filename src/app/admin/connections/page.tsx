@@ -395,13 +395,13 @@ export default function Connections() {
                 <div className="embed-code-container">
                   <p className="text-sm font-medium text-gray-700 mb-2">Copy this code to embed the chatbot:</p>
                   <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto">
-                    {`<div id="embedded-chatbot"></div>\n\n<!-- Correct script tag -->\n<script src="http://localhost:3000/embed.js" data-url="${product._id}"></script>`}
+                    {`<div id="embedded-chatbot"></div>\n\n<!-- Correct script tag -->\n<script src="${process.env.NEXT_PUBLIC_DOMAIN}/embed.js" data-url="${product._id}"></script>`}
                   </pre>
                   <button 
                     className="mt-2 text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
                     onClick={() => {
                       navigator.clipboard.writeText(
-                        `<!-- Add this div to contain the embedded chatbot -->\n<div id="embedded-chatbot"></div>\n\n<!-- Correct script tag -->\n<script src="http://localhost:3000/embed.js" data-url="${product._id}"></script>`
+                        `<!-- Add this div to contain the embedded chatbot -->\n<div id="embedded-chatbot"></div>\n\n<!-- Correct script tag -->\n<script src="${process.env.NEXT_PUBLIC_DOMAIN}/embed.js" data-url="${product._id}"></script>`
                       );
                       toast.success('Embed code copied to clipboard!');
                     }}
