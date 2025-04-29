@@ -100,9 +100,9 @@ export const sendEmail = async ({ email, emailType, userId, isOrg = false }: any
             },
         });
 
-        const verifyUrl = `${process.env.DOMAIN}/verified?token=${hashedToken}`;
+        const verifyUrl = `${process.env.NEXT_PUBLIC_DOMAIN}/verified?token=${hashedToken}`;
         // Define the reset URL to point to the changepassword page
-        const resetUrl = `${process.env.DOMAIN}/changepassword?token=${hashedToken}`;
+        const resetUrl = `${process.env.NEXT_PUBLIC_DOMAIN}/changepassword?token=${hashedToken}`;
         
         console.log(`${emailType} URL:`, emailType === "VERIFY" ? verifyUrl : resetUrl);
 
