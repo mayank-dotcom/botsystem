@@ -1,7 +1,7 @@
 'use client';
+import './trainin.css';
 
 import { useState, useEffect } from 'react';
-import './trainin.css';
 import axios, { AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import { 
@@ -408,7 +408,7 @@ export default function TrainingManagement() {
             </div>
           ) : dbDocuments.length > 0 ? (
             dbDocuments.map((doc) => (
-              <div key={doc.id} className="p-4">
+              <div key={doc.id} className="p-4" id='docs'>
                 <div className="flex items-center">
                   <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-50">
                     {doc.type === 'pdf' ? (

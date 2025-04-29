@@ -405,10 +405,12 @@ h1.dashboard-title {
     overflow-y: hidden!important;
    
   }
+
   .admin-container{
     overflow-x: hidden;
   
-    
+    position: relative;
+    top:-1rem;
   }
   .main-content{
   scale: 130%;
@@ -418,19 +420,25 @@ h1.dashboard-title {
   width: 30rem!important;
  
   }
+  .sidebar-header{
+    padding-top: 3rem;
+  
+  }
   .sidebar{
     scale: 140%;
     position: relative;
     top: 11rem;
     left: 1.5rem;
+    
   }
+ 
 }
 @media (min-width: 1900px) {
   body{
     overflow-y: scroll!important;
     height: 100%;
     position: relative;
-    top: 9rem;
+    top: 19rem!important;
 }
 .sidebar-header{
   padding-top: 3rem;
@@ -438,10 +446,13 @@ h1.dashboard-title {
 }
   .sidebar{
     position: relative;
+    max-height: 100%!important;
+    min-height: 107rem;
     left: 17rem;
     width: 10rem;
-    top: 14rem;
+    top: 20rem;
     scale: 150%;
+    max-height: 100%!important;
   }
   .main-content{
     max-width: 60rem!important;
@@ -451,5 +462,9 @@ h1.dashboard-title {
     top: 7rem;
     scale: 120%;
     /* overflow-y: scroll!important; */
+  }
+  #admindash{
+    position: relative;
+    top: 5rem;
   }
 }

@@ -1,7 +1,7 @@
 'use client';
+import './style.css';
 
 import { useState, useEffect, useRef } from 'react';
-import './style.css';
 import axios from 'axios';
 import { 
   MagnifyingGlassIcon,
@@ -255,8 +255,8 @@ export default function ChatHistory() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6" id='chathistcontain'>
+      <div className="flex items-center justify-between" id='chhsit'>
         <h1 className="text-2xl font-bold text-gray-900">Chat History</h1>
         <div className="flex items-center space-x-4" id='searchfilter'>
           <div className="relative">
@@ -380,7 +380,7 @@ export default function ChatHistory() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id='twocards'>
         {/* Conversation List */}
         <div className="lg:col-span-1 bg-white shadow rounded-lg" id='conversation-list'>
           <div className="p-4 border-b">

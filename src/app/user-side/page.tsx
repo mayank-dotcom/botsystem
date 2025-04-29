@@ -41,6 +41,9 @@ function UsersideInner() {
   const [availableDocuments, setAvailableDocuments] = useState<DocumentItem[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const searchParams = useSearchParams();
+  // Add state for idle timer
+  const [idleTime, setIdleTime] = useState(0);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Detect if we're in an iframe
@@ -152,6 +155,24 @@ function UsersideInner() {
             // We need to call run in the next tick after state is updated
             setTimeout(() => run(), 0);
           }
+          
+          // Handle the RESET_CHAT command from parent window
+          if (command === 'RESET_CHAT') {
+            console.log("Received RESET_CHAT command from parent window");
+            setChatHistory([]);
+            setIdleTime(0);
+            
+            // If we have embedded URL info, refetch documents
+            if (embeddedInfo.url) {
+              fetchDocumentsForUrl(embeddedInfo.url);
+            }
+            
+            // Notify parent that we've reset the chat
+            window.parent.postMessage({
+              type: 'CHATBOT_RESET',
+              message: 'Chat reset due to inactivity'
+            }, '*');
+          }
         }
       };
 
@@ -160,8 +181,73 @@ function UsersideInner() {
     }
   }, [isEmbedded]);
 
+  // Setup idle timer
+  useEffect(() => {
+    // Reset idle timer whenever there's user activity
+    const resetIdleTimer = () => {
+      setIdleTime(0);
+      
+      // Clear existing timer
+      if (idleTimerRef.current) {
+        clearInterval(idleTimerRef.current);
+      }
+      
+      // Start a new timer that increments idleTime every second
+      idleTimerRef.current = setInterval(() => {
+        setIdleTime(prevIdleTime => prevIdleTime + 1);
+      }, 1000);
+    };
+    
+    // Reset timer on initial load
+    resetIdleTimer();
+    
+    // Add event listeners for user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      window.addEventListener(event, resetIdleTimer);
+    });
+    
+    // Cleanup function
+    return () => {
+      // Remove all event listeners
+      events.forEach(event => {
+        window.removeEventListener(event, resetIdleTimer);
+      });
+      
+      // Clear the interval
+      if (idleTimerRef.current) {
+        clearInterval(idleTimerRef.current);
+      }
+    };
+  }, []);
+  
+  // Check if idle time exceeds 60 seconds (1 minute) and reset chat if it does
+  useEffect(() => {
+    if (idleTime >= 60 && chatHistory.length > 0) {
+      console.log("User idle for 1 minute, resetting chat interface");
+      setChatHistory([]);
+      setIdleTime(0);
+      
+      // If embedded, notify the parent window that the chat has been reset
+      if (isEmbedded) {
+        window.parent.postMessage({
+          type: 'CHATBOT_RESET',
+          message: 'Chat reset due to inactivity'
+        }, '*');
+      }
+      
+      // Refetch documents if we're in embedded mode
+      if (isEmbedded && embeddedInfo.url) {
+        fetchDocumentsForUrl(embeddedInfo.url);
+      }
+    }
+  }, [idleTime, chatHistory.length]);
+
   const run = async () => {
     try {
+      // Reset idle timer when user sends a message
+      setIdleTime(0);
+      
       if (user.question.length > 0 && user.rank > 0 && user.userId.length > 0) {
         
         setLoading(true);

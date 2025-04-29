@@ -1,9 +1,9 @@
 'use client';
+import './style.css';
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import '../admin.css';
 
 interface Admin {
   id: string;
@@ -154,17 +154,17 @@ export default function AdminManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id='adminamangemntcont'>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4" id='adminheading'>
           <h1 className="text-2xl font-bold text-gray-900">Admin Management</h1>
        
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id='admin-manage'>
         {/* Admin List */}
-        <div className="lg:col-span-2 bg-white shadow rounded-lg" id='admin-manage'>
+        <div className="lg:col-span-2 bg-white shadow rounded-lg" >
           <div className="p-4 border-b">
             <h2 className="text-lg font-medium">Current Admins</h2>
           </div>
@@ -291,7 +291,7 @@ export default function AdminManagement() {
                 </div>
                 
                 <div>
-                  <button
+                  <button id='addadminbt'
                     type="submit"
                     disabled={loading}
                     className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${

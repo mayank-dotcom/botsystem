@@ -102,7 +102,33 @@ top: -33.5rem!important;
   top: -2rem;
 }
   }
+  @media(min-width: 1900px){
+    body{
+      overflow-y: hidden!important;
+    }
+        #training-container{
+      position: relative;
+      top: 4rem;
+    }#docs{
+      width: 29rem;
+      /* border: 2px solid red; */
+    }#doclist{
+      width: 10rem;
+      overflow-x: hidden;
+    }
+    #uploaded-documents{
+      position: relative;
+      width: 32rem;
+      left: 30rem;
+      top: -32.5rem;
+      height: 30rem;
+    }
+  }
   @media (max-width: 1680px) and (min-width: 1440px) {
+    #training-container{
+      position: relative;
+      top: 4rem;
+    }
     #doc-name{
       width: 18rem;
       overflow: hidden;
@@ -110,8 +136,8 @@ top: -33.5rem!important;
     }
     #uploaded-documents{
       position: relative;
-      margin-top: -13rem!important;
-      height: 13rem!important;
+      margin-top: -36.5rem!important;
+      height: 36rem!important;
       overflow-y: scroll;
       width: 32rem;
       left: 35.5rem;

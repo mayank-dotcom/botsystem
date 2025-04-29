@@ -10,10 +10,22 @@
         width: 27rem;
     }
 @media (min-width: 1900px) {
+    body{
+        overflow-y: hidden!important;
+    }
+    .sidebar{
+    position: relative;
+    top:20rem;
+    }
     #conversation-list{
         width: 26rem;
-    }      #convos{
+        max-height: 28rem!important;
+        overflow-y: scroll;
+    }   
+       #convos{
         width: 32rem;
+        max-height: 28rem!important;
+
     }
 
     #searchfilter{
@@ -21,17 +33,50 @@
         left: 0.5rem!important;
        
     }
+    #chathistcontain{
+        position: relative;
+        top: 5rem;
+    }
 }
 @media (max-width: 1680px) and (min-width: 1440px) {
+   #twocards{
+    /* height: 40rem; */
+    position: relative;
+    top:4rem;
+
+   
+    /* max-width: 50rem; */
+   }
+   #chathistcontain{
+    height: 40rem;
+    position: relative;
+    top: 2rem;
+    /* border: 2px solid yellow; */
+
+   }#chhsit{
+    position: relative;
+    left: 2rem;
+   }
 #searchfilter{
         
         position: relative;
         left: -17rem;
         top: 0.5rem;
     }#conversation-list{
-        width: 35rem;
+        width: 25rem;
+        scale:140% ;
+        position: relative;
+        top: 4rem;
+        left: 6rem;
+        max-height: 24rem;
+        /* border: 2px solid red; */
+        overflow-y: scroll;
     }#convos{
         width: 27.5rem;
+        position: relative;
+        right: -13rem;
+        height: 33rem;
+        max-height: 33rem;
     }
 }@media (max-width: 1280px) and (min-width: 1024px) and (min-resolution: 144dpi){
     #convos{

@@ -4,6 +4,7 @@
     apiBaseUrl: window.location.origin, // Will use the host site as base for API calls
     containerId: 'embedded-chatbot',
     targetUrl: null, // New property to store manually provided URL
+    idleTimeout: 60000, // 1 minute in milliseconds
     chatbotStyles: `
       #embedded-chatbot-container {
         position: fixed;
@@ -68,6 +69,10 @@
     `
   };
 
+  // Variables for idle timer
+  let idleTimer = null;
+  let lastActivity = Date.now();
+
   // Create and inject styles
   function injectStyles() {
     const style = document.createElement('style');
@@ -80,7 +85,10 @@
     const button = document.createElement('div');
     button.id = 'embedded-chatbot-button';
     button.innerHTML = '<i class="fa-solid fa-bolt"></i>';
-    button.addEventListener('click', toggleChatbot);
+    button.addEventListener('click', function() {
+      resetIdleTimer();
+      toggleChatbot();
+    });
     document.body.appendChild(button);
     return button;
   }
@@ -102,7 +110,10 @@
     const toggle = document.createElement('button');
     toggle.id = 'embedded-chatbot-toggle';
     toggle.innerHTML = '&times;';
-    toggle.addEventListener('click', toggleChatbot);
+    toggle.addEventListener('click', function() {
+      resetIdleTimer();
+      toggleChatbot();
+    });
     
     header.appendChild(title);
     header.appendChild(toggle);
@@ -139,6 +150,67 @@
       container.classList.add('embedded-chatbot-hidden');
       button.classList.remove('embedded-chatbot-hidden');
     }
+  }
+
+  // Reset idle timer
+  function resetIdleTimer() {
+    lastActivity = Date.now();
+    
+    // Clear existing timer
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+    }
+    
+    // Set new timer
+    idleTimer = setTimeout(handleIdle, config.idleTimeout);
+  }
+
+  // Handle idle timeout
+  function handleIdle() {
+    console.log("User idle for 1 minute, resetting chat interface");
+    
+    // Get the iframe and send a message to reset the chat
+    const iframe = document.getElementById('embedded-chatbot-iframe');
+    if (iframe) {
+      // Send a message to the iframe content to reset the chat and show document selection
+      iframe.contentWindow.postMessage({
+        type: 'CHATBOT_COMMAND',
+        command: 'RESET_CHAT',
+        payload: {
+          showDocumentSelection: true
+        }
+      }, '*');
+      
+      // If the iframe content doesn't respond, fall back to reloading it
+      setTimeout(() => {
+        if (iframe) {
+          const currentSrc = iframe.src;
+          iframe.src = currentSrc;
+        }
+      }, 500); // Wait 500ms for the message to be processed
+    }
+  }
+
+  // Setup event listeners for user activity
+  function setupIdleDetection() {
+    // List of events that indicate user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    // Add event listeners to document
+    events.forEach(event => {
+      document.addEventListener(event, resetIdleTimer);
+    });
+    
+    // Add event listeners to iframe content if possible
+    const iframe = document.getElementById('embedded-chatbot-iframe');
+    if (iframe && iframe.contentDocument) {
+      events.forEach(event => {
+        iframe.contentDocument.addEventListener(event, resetIdleTimer);
+      });
+    }
+    
+    // Start the initial timer
+    resetIdleTimer();
   }
 
   // Initialize the embedded chatbot
@@ -187,6 +259,21 @@
       // Move the chatbot into the target container
       targetContainer.appendChild(chatContainer);
     }
+    
+    // Setup idle detection after everything is initialized
+    // We need to wait a bit for the iframe to load
+    setTimeout(setupIdleDetection, 1000);
+    
+    // Add message listener for communication with iframe
+    window.addEventListener('message', function(event) {
+      // Reset idle timer when we receive a message from the iframe
+      // This handles user activity inside the iframe
+      if (event.data && (event.data.type === 'CHATBOT_RESPONSE' || 
+                         event.data.type === 'CHATBOT_RESET' ||
+                         event.data.type === 'CHATBOT_ACTIVITY')) {
+        resetIdleTimer();
+      }
+    });
   }
 
   // Run initialization when DOM is fully loaded

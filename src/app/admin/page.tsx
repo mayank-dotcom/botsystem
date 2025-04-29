@@ -8,7 +8,7 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon
 } from '@heroicons/react/24/outline';
-
+import './dashboard.css'
 export default function AdminDashboard() {
   // Mock data - replace with actual data from your backend
   const stats = [

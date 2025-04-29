@@ -1,9 +1,9 @@
 
 
 'use client';
+import './style.css';
 
 import { useState, useEffect } from 'react';
-import './style.css';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import {

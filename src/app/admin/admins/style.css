@@ -1,0 +1,50 @@
+@media (max-width: 1280px) and (min-width: 1024px) and (min-resolution: 144dpi){
+    #admin-manage{
+        width: 70rem;
+    }#addadminbt{
+        height: 2rem; 
+        padding: 5px 2px 2px 2px;
+    }#new-box{
+        width: 20rem;
+    }
+}
+@media (max-width: 1680px) and (min-width: 1440px) {
+    #admin-manage{
+        scale: 120%;
+        position: relative;
+        top: 5rem;
+        left: 10rem;
+        width: 70rem;
+    }#adminheading{
+        position: relative;
+        top: 1rem;
+        left: 1rem;
+    }
+    #addadminbt{
+       height: 2rem; 
+       padding: 5px 2px 2px 2px;
+    }
+}
+@media (min-width: 1900px) {
+    body{
+        overflow-y: hidden!important;
+    }
+#adminamangemntcont{
+    position: relative;
+    top:5rem;
+}
+#admin-manage{
+    scale: 120%;
+    position: relative;
+    top: 2rem;
+    left: 10rem;
+    width: 50rem;
+}
+.sidebar{
+    position: relative;
+    top: 20rem;
+}#addadminbt{
+    height: 2rem; 
+    padding: 5px 2px 2px 2px;
+}
+}

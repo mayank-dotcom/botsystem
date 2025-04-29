@@ -1,0 +1,17 @@
+body{
+  overflow-y: hidden!important;
+}
+@media (max-width: 1680px) and (min-width: 1440px) {
+  body{
+    overflow-y: hidden!important;
+  }
+  #admindash{
+    width: 50rem;
+    scale: 125%;
+    position: relative;
+    top: 10rem;
+    left: 8rem;
+    height: 60rem;
+
+  }
+}
