@@ -10,10 +10,10 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 30rem!important;
+        width: 450px;
         height: 500px;
         border-radius: 10px;
-        border: 2px solid #4f46e5;
+        border: 1px solid black;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         overflow: hidden;
         z-index: 9999;
@@ -22,28 +22,27 @@
         background: white;
       }
       #embedded-chatbot-header {
-        background: #4f46e5;
-        color: white;
-        padding: 10px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: none;
       }
       #embedded-chatbot-title {
-        font-weight: bold;
-        font-size: 16px;
+        display: none;
       }
       #embedded-chatbot-toggle {
+        position: absolute;
+        top: 5px;
+        right: 5px;
         background: none;
         border: none;
-        color: white;
+        color: black;
         cursor: pointer;
         font-size: 20px;
+        z-index: 10000;
       }
       #embedded-chatbot-iframe {
         flex: 1;
         width: 100%;
-        border: none;
+        height: 100%;
+        position: relative;
       }
       #embedded-chatbot-button {
         position: fixed;
@@ -52,8 +51,8 @@
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        background: #4f46e5;
-        color: white;
+        background: #000000;
+        color: #FFD700;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -65,7 +64,19 @@
       .embedded-chatbot-hidden {
         display: none !important;
       }
-      
+      /* Add these styles to control text colors in chat boxes */
+      #chatbox1 {
+        color: #000000 !important; /* Black text for user's messages */
+      }
+      #chatbox2, #chatbox3 {
+        color: #FFD700 !important; /* Gold text for chatbot's responses */
+      }
+      #resp, #resp2 {
+        color: #FFD700 !important; /* Gold text for chatbot's responses */
+      }
+      #query {
+        color: #000000 !important; /* Black text for user's messages */
+      }
     `
   };
 
@@ -99,14 +110,7 @@
     container.id = 'embedded-chatbot-container';
     container.classList.add('embedded-chatbot-hidden');
     
-    // Create header
-    const header = document.createElement('div');
-    header.id = 'embedded-chatbot-header';
-    
-    const title = document.createElement('div');
-    title.id = 'embedded-chatbot-title';
-    title.textContent = 'AI Assistant';
-    
+    // Create toggle button (without header)
     const toggle = document.createElement('button');
     toggle.id = 'embedded-chatbot-toggle';
     toggle.innerHTML = '&times;';
@@ -114,9 +118,6 @@
       resetIdleTimer();
       toggleChatbot();
     });
-    
-    header.appendChild(title);
-    header.appendChild(toggle);
     
     // Create iframe with URL parameters to pass the embedding site information
     const iframe = document.createElement('iframe');
@@ -128,10 +129,10 @@
     const pageTitle = encodeURIComponent(document.title);
     
     // Append URL parameters to the iframe src - use absolute URL to ensure correct routing
-    iframe.src = `https://botsystem-production.up.railway.app/user-side?embedded=true&embedUrl=${currentUrl}&embedTitle=${pageTitle}`;
+    iframe.src = `http://localhost:3000/user-side?embedded=true&embedUrl=${currentUrl}&embedTitle=${pageTitle}`;
     
-    // Assemble container
-    container.appendChild(header);
+    // Assemble container (without header)
+    container.appendChild(toggle);
     container.appendChild(iframe);
     
     document.body.appendChild(container);
@@ -246,15 +247,19 @@
     const targetContainer = document.getElementById(config.containerId);
     if (targetContainer) {
       // If a target container exists, we'll use that instead of the floating button
-      chatButton.classList.add('embedded-chatbot-hidden');
-      chatContainer.classList.remove('embedded-chatbot-hidden');
+      // Don't hide the button completely - we need it to open the chat
+      // chatButton.classList.add('embedded-chatbot-hidden');
+      
+      // Keep the chatbot hidden initially
+      // container.classList.remove('embedded-chatbot-hidden');
       
       // Remove fixed positioning and shadows for in-page embedding
       chatContainer.style.position = 'relative';
       chatContainer.style.bottom = 'auto';
       chatContainer.style.right = 'auto';
-      chatContainer.style.width = '100%';
-      chatContainer.style.height = '500px'; /* Reduced from 600px to 500px */
+      chatContainer.style.width = '90%';
+      chatContainer.style.maxWidth = '350px';
+      chatContainer.style.height = '550px';
       
       // Move the chatbot into the target container
       targetContainer.appendChild(chatContainer);

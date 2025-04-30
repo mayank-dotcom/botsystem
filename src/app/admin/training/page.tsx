@@ -75,22 +75,7 @@ export default function TrainingManagement() {
                       setOrgId(orgData.orgId);
                       console.log('Organization ID:', orgData.orgId);
   
-                      // First create behavior
-                      const behaviorRes = await axios.post('/api/create-behaviour', {
-                          length: "medium",
-                          outputStructure: "paragraph",
-                          tone: "professional",
-                          personality: "helpful",
-                          mustdo: "answer the query",
-                          dondo: "_",
-                          orgId: orgData.orgId
-                      });
   
-                      if (behaviorRes.data?.insertedId) {
-                          console.log("Bot behaviour created successfully, ID:", behaviorRes.data.insertedId);
-                      } else {
-                          console.error("Failed to create bot behaviour:", behaviorRes.data);
-                      }
                   } else {
                       console.error('Failed to fetch organization details');
                   }

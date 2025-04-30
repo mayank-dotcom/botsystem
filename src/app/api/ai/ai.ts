@@ -99,14 +99,40 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
   // Replace HuggingFaceInference with ChatOpenAI
   const model = new ChatOpenAI({
     modelName: "gpt-4o-mini", // You can use "gpt-4" for better results if available
-    temperature: 0.3,
+    temperature: 0.5,
     maxTokens: 210,
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
-let finaloutput = "headings and bullet points with rich text"
-if (outputStructure === "Bullets") {
-  finaloutput = outputStructure
-}
+
+  // Define response length options
+  let tokenLimit: string;
+  switch (length.toLowerCase()) {
+    case "short":
+      tokenLimit = "10-20 words containing just the conclusion";
+      break;
+    case "medium":
+      tokenLimit = "50-70 words with explaination";
+      break;
+    case "long":
+      tokenLimit = "70-100 words with explaination";
+      break;
+    default:
+      tokenLimit = "10-20 words containing just the conclusion"; // Default to medium
+  }
+
+  // Define output structure options
+  let finaloutput: string;
+  switch (outputStructure.toLowerCase()) {
+    case "bullets":
+      finaloutput = "bullet points with rich text headings";
+      break;
+    case "paragraph":
+      finaloutput = "flowing paragraphs without any points,bullets";
+      break;
+    default:
+      finaloutput = "flowing paragraphs"; // Default to paragraph
+  }
+
   // After all the variables are set, create the template
   const DEFAULT_BOT_BEHAVIOR_TEMPLATE = `
 You are an AI assistant. Always follow the instructions below precisely.
@@ -119,7 +145,7 @@ Your response should strictly reflect the following behavioral settings:
 - Tone: ${tone}  
 - Personality: ${personality}  
 - Output Structure: in ${finaloutput}  
-- Length: ${length}
+- Length: ${length} (approximately ${tokenLimit})
 
 **MANDATORY:**  
 - You MUST include this exact behaviour in each and every answer otherwise it would be considered invalid: "${mustdo}"

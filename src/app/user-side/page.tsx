@@ -367,8 +367,8 @@ function UsersideInner() {
           <div id='chatbox2'>
             <div id='resp2'>
               <i className="fa-solid fa-bolt" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
-              <div className="response-content" style={{ paddingLeft: "64px", color: "white", whiteSpace: "pre-wrap" }}>
-                <p style={{ marginBottom: "10px" }}>What do you want to discuss today ?</p>
+              <div className="response-content" style={{ paddingLeft: "64px", color: "#FFD700", whiteSpace: "pre-wrap" }}>
+                <p style={{ marginBottom: "10px" ,color:" #FFD700", fontWeight:"bold"}}>What do you want to discuss today ?</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                   {isLoadingDocuments ? (
                     <p>Loading documents...</p>
@@ -405,15 +405,15 @@ function UsersideInner() {
         {chatHistory.map((item, index) => (
           <React.Fragment key={index}>
             <div id='chatbox1'>
-              <div id='resp'>{item.question}</div>
+              <div id='resp' >{item.question}</div>
             </div>
             <div id='chatbox2'>
               <div id='resp2'>
-                <i className="fa-solid fa-bolt" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
+                <i className="fa-solid fa-bolt" id="bolt" style={{backgroundColor:" #FFD700",color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
                 <div className="response-content" style={{ paddingLeft: "64px", color: "white", whiteSpace: "pre-wrap" }}>
                   <div 
                     dangerouslySetInnerHTML={{ __html: item.response }}
-                    style={{ color: "white" }}
+                    style={{  color:" #FFD700",fontWeight:"bold" }}
                   />
                 </div>
               </div>
