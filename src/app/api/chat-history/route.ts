@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
         const client = await clientPromise;
         const db = client.db("asssignment_final");
         const historyCollection = db.collection("conversation_history");
+        const connectionsCollection = db.collection("connections");
         
         // Calculate skip value for pagination
         const skip = (page - 1) * limit;
@@ -35,12 +36,20 @@ export async function GET(request: NextRequest) {
             .limit(limit)
             .toArray();
             
-        if (history.length > 0) {
+        // Fetch all bots associated with this organization
+        const allBots = await connectionsCollection
+            .find({ org_Id: orgId })
+            .project({ _id: 1, name: 1, url: 1 })
+            .toArray();
+            
+        if (history.length > 0 || allBots.length > 0) {
             console.log("History fetched successfully", history.length, "items");
+            console.log("Bots fetched successfully", allBots.length, "bots");
             return NextResponse.json({ 
                 success: true, 
                 message: "History fetched successfully", 
                 history,
+                allBots, // Include all bots in the response
                 currentPage: page,
                 totalPages,
                 totalCount
@@ -51,6 +60,7 @@ export async function GET(request: NextRequest) {
                 success: true,
                 message: "No history found for the given organization ID",
                 history: [],
+                allBots: [],
                 currentPage: page,
                 totalPages: 0,
                 totalCount: 0

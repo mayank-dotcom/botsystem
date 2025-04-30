@@ -77,6 +77,22 @@
       #query {
         color: #000000 !important; /* Black text for user's messages */
       }
+      /* Document button styles */
+      .document-button, 
+      button.document-btn, 
+      .doc-button,
+      .document-selection button {
+        background-color: #FFD700 !important; /* Gold background */
+        color: #000000 !important; /* Black text */
+        border: 1px solid #000000 !important;
+      }
+      /* Target any buttons in document selection area */
+      [class*="document"] button,
+      [id*="document"] button,
+      .doc-selector button {
+        background-color: #FFD700 !important;
+        color: #000000 !important;
+      }
     `
   };
 

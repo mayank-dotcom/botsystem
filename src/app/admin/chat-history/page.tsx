@@ -148,6 +148,14 @@ export default function ChatHistory() {
           const groupedConversations: {[key: string]: GroupedConversation} = {};
           const botSet = new Set<string>();
           
+          // Add all bots from the response to the available bots list
+          const allBots = response.data.allBots || [];
+          allBots.forEach((bot: any) => {
+            if (bot.name) {
+              botSet.add(bot.name);
+            }
+          });
+          
           history.forEach((item: Conversation) => {
             const userId = item.userId;
             const timestamp = new Date(item.timestamp);

@@ -380,12 +380,13 @@ function UsersideInner() {
                           onClick={() => setUser({...user, rank: doc.id})}
                           style={{
                             padding: "8px 16px",
-                            background: user.rank === doc.id ? "#4f46e5" : "#374151",
-                            color: "white",
+                            background: user.rank === doc.id ? "#FFD700" : "#FFD700",
+                            color: "black",
                             border: "none",
                             borderRadius: "20px",
                             cursor: "pointer",
-                            marginBottom: "8px"
+                            marginBottom: "8px",
+                            backgroundColor:"#FFD700!important",
                           }}
                         >
                           {doc.title}
