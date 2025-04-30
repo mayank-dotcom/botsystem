@@ -90,20 +90,33 @@ export default function TrainingManagement() {
       fetchOrgId();
   }, []);
   
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  
   // Function to fetch documents from the database
-  const fetchDocumentsFromDb = async () => {
+  const fetchDocumentsFromDb = async (page = currentPage) => {
     setIsLoading(true);
     let retries = 3;
     
     while (retries > 0) {
       try {
         const response = await axios.get('/api/documents', {
+          params: {
+            page: page,
+            limit: pageSize,
+            orgId: orgId
+          },
           timeout: 10000 // 10 second timeout
         });
         
+        // Set pagination information
+        setCurrentPage(response.data.currentPage);
+        setTotalPages(response.data.totalPages);
+        
         // Transform the data to match our TrainingDocument interface
         const formattedDocs = response.data.documents
-          .filter((doc: any) => doc.org_Id === orgId) // Filter by orgId
           .map((doc: any) => {
             // Extract name from content field if available
             let displayName = 'Unknown Document';
@@ -146,6 +159,14 @@ export default function TrainingManagement() {
     }
     
     setIsLoading(false);
+  };
+  
+  // Function to handle page changes
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      fetchDocumentsFromDb(newPage);
+    }
   };
   
   // Function to delete a document from the database
@@ -424,12 +445,35 @@ export default function TrainingManagement() {
             </div>
           )}
         </div>
-        <div className="p-4 border-t">
+        
+        {/* Add pagination controls */}
+        <div className="p-4 border-t flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <button
+              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1 || isLoading}
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages || isLoading}
+            >
+              Next
+            </button>
+          </div>
+          
           <button
-            className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            onClick={fetchDocumentsFromDb}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            onClick={() => fetchDocumentsFromDb(1)}
+            disabled={isLoading}
           >
-            Refresh Documents
+            Refresh
           </button>
         </div>
       </div>
