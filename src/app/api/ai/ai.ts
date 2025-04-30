@@ -12,6 +12,7 @@ interface Connection {
   org_Id: string;
   name: string;
   url: string;
+  databases?: string[];  // Add this line to include the databases array
   botBehavior?: {
     tone?: string;
     responseLength?: string;
@@ -85,8 +86,46 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
     }
   }
 
-  const allDocs = await collection.find().toArray();
-  const selectedDoc = allDocs[rank - 1];
+  // Get documents based on the connection and rank
+  let selectedDoc;
+  
+  if (embedUrl) {
+    try {
+      // First, find the connection to get its databases array
+      const connection = await connectionsCollection.findOne({ url: embedUrl });
+      
+      if (connection && connection.databases && connection.databases.length > 0) {
+        // Find documents that match the content in the databases array
+        const matchingDocs = await collection.find({ 
+          content: { $in: connection.databases } 
+        }).toArray();
+        
+        // Get the document at the specified rank (index)
+        if (matchingDocs.length >= rank) {
+          selectedDoc = matchingDocs[rank - 1];
+          console.log(`Using document at rank ${rank} from connection's databases`);
+        } else {
+          throw new Error(`No document found at rank ${rank} for the specified connection`);
+        }
+      } else {
+        // Fallback to getting all docs if no databases array or it's empty
+        const allDocs = await collection.find().toArray();
+        selectedDoc = allDocs[rank - 1];
+        console.log(`Using document at rank ${rank} from all documents (fallback)`);
+      }
+    } catch (error) {
+      console.error("Error finding document by rank and connection:", error);
+      // Fallback to the original method
+      const allDocs = await collection.find().toArray();
+      selectedDoc = allDocs[rank - 1];
+      console.log(`Using document at rank ${rank} from all documents (error fallback)`);
+    }
+  } else {
+    // Original behavior if no embedUrl is provided
+    const allDocs = await collection.find().toArray();
+    selectedDoc = allDocs[rank - 1];
+    console.log(`Using document at rank ${rank} from all documents`);
+  }
 
   if (!selectedDoc) throw new Error(`No document found at rank ${rank}`);
 
@@ -137,8 +176,7 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
   const DEFAULT_BOT_BEHAVIOR_TEMPLATE = `
 You are an AI assistant. Always follow the instructions below precisely.
 
-Use only the information provided in {context} to answer the question. If the question asked is unrelated to the context, respond with:  
-**"I'm sorry, but I don't have enough information in the provided context to answer that."**
+Use only the information provided in {context} to answer the question only if the subject is somewhat related to the {context}.
 
 Your response should strictly reflect the following behavioral settings:
 

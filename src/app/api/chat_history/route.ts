@@ -15,14 +15,25 @@ interface ConversationHistory {
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId, orgId } = await req.json();
+        const { userId, orgId, url } = await req.json();
         const client = await clientPromise;
         const db = client.db("asssignment_final");
         const historyCollection = db.collection<ConversationHistory>("conversation_history");
         
-        // If orgId is provided, fetch history for the organization
-        // Otherwise, fall back to userId-based filtering
-        const filter = orgId ? { org_Id: orgId } : { userId };
+        // Build filter based on provided parameters
+        let filter: any = {};
+        
+        // If url is provided, prioritize filtering by URL
+        if (url) {
+            filter.url = url;
+            console.log("Filtering conversation history by URL:", url);
+        }
+        // If no URL or as fallback, use orgId or userId
+        else if (orgId) {
+            filter.org_Id = orgId;
+        } else if (userId) {
+            filter.userId = userId;
+        }
         
         // Fetch all history for the user or organization, sorted by timestamp
         const latestHistory = await historyCollection
@@ -61,13 +72,26 @@ export async function GET(request: NextRequest) {
         // Get query parameters
         const url = new URL(request.url);
         const orgId = url.searchParams.get('orgId');
+        const embedUrl = url.searchParams.get('url'); // Add URL parameter
         const page = parseInt(url.searchParams.get('page') || '1');
         const limit = parseInt(url.searchParams.get('limit') || '10');
         
-        if (!orgId) {
+        // Build filter based on provided parameters
+        let filter: any = {};
+        
+        // If embedUrl is provided, prioritize filtering by URL
+        if (embedUrl) {
+            filter.url = embedUrl;
+            console.log("Filtering conversation history by URL:", embedUrl);
+        } 
+        // If no URL or as fallback, use orgId
+        else if (orgId) {
+            filter.org_Id = orgId;
+            console.log("Filtering conversation history by orgId:", orgId);
+        } else {
             return NextResponse.json({ 
                 success: false, 
-                message: "Organization ID is required" 
+                message: "Either Organization ID or URL is required" 
             }, { status: 400 });
         }
 
@@ -80,12 +104,12 @@ export async function GET(request: NextRequest) {
         const skip = (page - 1) * limit;
         
         // Get total count for pagination
-        const totalCount = await historyCollection.countDocuments({ org_Id: orgId });
+        const totalCount = await historyCollection.countDocuments(filter);
         const totalPages = Math.ceil(totalCount / limit);
         
         // Fetch history for the organization, sorted by timestamp
         const history = await historyCollection
-            .find({ org_Id: orgId })
+            .find(filter)
             .sort({ timestamp: -1 }) // Sort by newest to oldest
             .skip(skip)
             .limit(limit)
@@ -122,10 +146,10 @@ export async function GET(request: NextRequest) {
                 totalCount
             }, { status: 200 });
         } else {
-            console.log("No history found for the given organization ID");
+            console.log("No history found for the given filter");
             return NextResponse.json({ 
                 success: true,
-                message: "No history found for the given organization ID",
+                message: "No history found for the given filter",
                 history: [],
                 currentPage: page,
                 totalPages: 0,
