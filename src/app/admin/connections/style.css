@@ -219,11 +219,7 @@ overflow-y: scroll!important;
   max-width: 47rem!important;
   overflow-y: scroll!important;
   }
-  .modal-overlay{
-    /* position: relative!important; */
-    /* left: 5rem!important; */
-    /* width: 100rem; */
-  }
+
     .stat-label {
       font-size: 0.875rem;
       color: #6b7280;
@@ -407,7 +403,9 @@ overflow-y: scroll!important;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       overflow: hidden;
       transition: transform 0.2s, box-shadow 0.2s;
-    }
+position: relative;
+top: -1rem;
+}
     
     .product-card:hover {
       transform: translateY(-2px);

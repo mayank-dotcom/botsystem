@@ -380,13 +380,21 @@ function UsersideInner() {
                           onClick={() => setUser({...user, rank: doc.id})}
                           style={{
                             padding: "8px 16px",
-                            background: user.rank === doc.id ? "#FFD700" : "#FFD700",
+                            background: "#FFD700",
                             color: "black",
                             border: "none",
                             borderRadius: "20px",
                             cursor: "pointer",
                             marginBottom: "8px",
+                            opacity: user.rank === doc.id ? "1" : "0.6",
+                            transition: "opacity 0.3s, transform 0.2s",
                             backgroundColor:"#FFD700!important",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "scale(1.05)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "scale(1)";
                           }}
                         >
                           {doc.title}

@@ -125,9 +125,10 @@ top: -33.5rem!important;
     }
   }
   @media (max-width: 1680px) and (min-width: 1440px) {
+ 
     #training-container{
       position: relative;
-      top: 4rem;
+      top:1rem;
     }
     #doc-name{
       width: 18rem;

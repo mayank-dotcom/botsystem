@@ -1,6 +1,10 @@
 body{
   overflow-y: hidden!important;
 }
+.activity-list{
+  overflow-y: scroll;
+  height: 17rem;
+}
 @media (max-width: 1680px) and (min-width: 1440px) {
   body{
     overflow-y: hidden!important;
@@ -12,6 +16,49 @@ body{
     top: 10rem;
     left: 8rem;
     height: 60rem;
+    overflow-y: hidden!important;
 
   }
+}
+/* Add these styles to your existing dashboard.css */
+
+.admin-designation {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+.loading, .empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Enhance existing activity item styles */
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item .title {
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.activity-item .meta {
+  font-size: 0.75rem;
+  color: #6b7280;
 }

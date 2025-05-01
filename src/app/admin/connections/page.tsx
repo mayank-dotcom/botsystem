@@ -15,6 +15,8 @@ import {
   PencilIcon,
 } from '@heroicons/react/24/outline';
 
+import { logActivity } from '@/helpers/activityLogger'; // Add this import
+
 // Update the Product interface
 interface Product {
   _id?: string;
@@ -33,6 +35,7 @@ interface Product {
     outputStructure: string;
     dos: string;
     donts: string;
+    who: string;  // Add this new field
   } | null; // Change undefined to null
 }
 
@@ -52,6 +55,12 @@ export default function Connections() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [isLoadingDatasets, setIsLoadingDatasets] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>([]);
+  
+  // Add these state variables for admin details
+  const [adminId, setAdminId] = useState<string>(""); // Keep this for backward compatibility
+  const [adminEmail, setAdminEmail] = useState<string>("");
+  const [adminRole, setAdminRole] = useState<string>("admin");
+  
   const [useCustomPrompt, setUseCustomPrompt] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [botBehavior, setBotBehavior] = useState({
@@ -61,6 +70,7 @@ export default function Connections() {
     outputStructure: 'paragraph',
     dos: '',
     donts: '',
+    who: 'AI'
   });
   const [updatingBehavior, setUpdatingBehavior] = useState(false);
   const [selectedDatabases, setSelectedDatabases] = useState<string[]>([]); // New state for multiple databases
@@ -74,12 +84,30 @@ export default function Connections() {
   useEffect(() => {
     const fetchUserIdAndConnections = async () => {
       try {
-        const response = await axios.get('/api/get-org-details');
-        if (response.data.success) {
-          const orgId = response.data.orgId;
-          setOrgId(orgId);
-          await fetchConnections(orgId);
-          await fetchDatasets(orgId);
+        // First get the user ID
+        const userResponse = await fetch('/api/get-user-id');
+        const userData = await userResponse.json();
+        if (userData.success) {
+          // Set admin ID
+          setAdminId(userData.userId);
+          
+          // Then get the organization details
+          const response = await axios.get('/api/get-org-details', {
+            headers: {
+              'user-id': userData.userId
+            }
+          });
+          if (response.data.success) {
+            const orgId = response.data.orgId;
+            setOrgId(orgId);
+            
+            // Set admin details if available
+            if (response.data.adminEmail) setAdminEmail(response.data.adminEmail);
+            if (response.data.adminDesignation) setAdminRole(response.data.adminDesignation);
+            
+            await fetchConnections(orgId);
+            await fetchDatasets(orgId);
+          }
         }
       } catch (error) {
         console.error('Error fetching organization details:', error);
@@ -233,6 +261,7 @@ export default function Connections() {
         personality: botBehavior.personality,
         mustdo: botBehavior.dos,
         dondo: botBehavior.donts,
+        who: botBehavior.who,  // Add this line
         orgId: orgId,
       });
       if (response.status === 200) {
@@ -281,6 +310,21 @@ export default function Connections() {
             )
           );
           toast.success('Connection updated successfully!');
+          
+          // Log the connection update activity
+          try {
+            await logActivity({
+              action: 'Connection updated',
+              adminId: adminId,
+              adminEmail: adminEmail,
+              adminDesignation: adminRole,
+              orgId: orgId,
+              collectionType: 'connections',
+              details: { connectionId: currentProductId, connectionName: connectionData.name }
+            });
+          } catch (logError) {
+            console.error('Failed to log activity:', logError);
+          }
         } else {
           throw new Error(response.data.message || 'Failed to update connection');
         }
@@ -293,12 +337,26 @@ export default function Connections() {
           const newConnection = {
             _id: response.data.insertedId,
             org_Id: orgId,
-            // _id already set above, no need to set it again
             ...connectionData,
             imageUrl: connectionData.imageUrl || `https://via.placeholder.com/150?text=${encodeURIComponent(connectionData.name)}`,
           };
           setProducts([...products, newConnection]);
           toast.success('Connection added successfully!');
+          
+          // Log the connection creation activity
+          try {
+            await logActivity({
+              action: 'Connection created',
+              adminId: adminId,
+              adminEmail: adminEmail,
+              adminDesignation: adminRole,
+              orgId: orgId,
+              collectionType: 'connections',
+              details: { connectionId: response.data.insertedId, connectionName: connectionData.name }
+            });
+          } catch (logError) {
+            console.error('Failed to log activity:', logError);
+          }
         } else {
           throw new Error(response.data.message || 'Failed to add connection');
         }
@@ -315,6 +373,7 @@ export default function Connections() {
         outputStructure: 'paragraph',
         dos: '',
         donts: '',
+        who: 'AI',  // Add this missing property
       });
       setIsModalOpen(false);
     } catch (error: any) {
@@ -330,10 +389,28 @@ export default function Connections() {
       return;
     }
     try {
+      // Find the product before deleting it to get its name
+      const productToDelete = products.find(product => product._id === productId);
+      
       const response = await axios.delete(`/api/connections/${productId}`);
       if (response.data.success) {
         setProducts(products.filter((product) => product._id !== productId));
         toast.success('Connection removed successfully!');
+        
+        // Log the connection deletion activity
+        try {
+          await logActivity({
+            action: 'Connection removed',
+            adminId: adminId,
+            adminEmail: adminEmail,
+            adminDesignation: adminRole,
+            orgId: orgId,
+            collectionType: 'connections',
+            details: { connectionId: productId, connectionName: productToDelete?.name }
+          });
+        } catch (logError) {
+          console.error('Failed to log activity:', logError);
+        }
       } else {
         throw new Error(response.data.message || 'Failed to remove connection');
       }
@@ -584,7 +661,6 @@ export default function Connections() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Output Structure</label>
-                      
                       <select
                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                         value={botBehavior.outputStructure}
@@ -616,6 +692,18 @@ export default function Connections() {
                         placeholder="Enter what the AI should avoid"
                         value={botBehavior.donts}
                         onChange={(e) => setBotBehavior({ ...botBehavior, donts: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-2 mt-4">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Who should the bot behave like?
+                      </label>
+                      <input
+                        type="text"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="AI"
+                        value={botBehavior.who}
+                        onChange={(e) => setBotBehavior({ ...botBehavior, who: e.target.value })}
                       />
                     </div>
                   </div>

@@ -11,6 +11,8 @@ import {
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
 
+import { logActivity } from '@/helpers/activityLogger';
+
 interface TrainingDocument {
   id: number | string;
   name: string;
@@ -57,37 +59,45 @@ export default function TrainingManagement() {
   }, []);
 
   // Fetch user's organization ID on component mount
-  // Replace the useEffect that fetches orgId with this:
+  // Add these state variables at the component level
+  const [adminId, setAdminId] = useState<string>(""); // Keep this for backward compatibility
+  const [adminEmail, setAdminEmail] = useState<string>("");
+  const [adminRole, setAdminRole] = useState<string>("admin");
+  
+  // Then modify the useEffect
   useEffect(() => {
-      const fetchOrgId = async () => {
-          try {
-              const response = await fetch('/api/get-user-id');
-              const data = await response.json();
-              if (data.success) {
-                  // Get the organization ID associated with the user
-                  const orgResponse = await fetch('/api/get-org-details', {
-                      headers: {
-                          'user-id': data.userId
-                      }
-                  });
-                  const orgData = await orgResponse.json();
-                  if (orgData.success) {
-                      setOrgId(orgData.orgId);
-                      console.log('Organization ID:', orgData.orgId);
-  
-  
-                  } else {
-                      console.error('Failed to fetch organization details');
-                  }
-              }
-          } catch (error: any) {
-              console.error('Error in initialization sequence:', 
-                  error?.response?.data || error?.message || 'Unknown error'
-              );
+    const fetchOrgId = async () => {
+      try {
+        const response = await fetch('/api/get-user-id');
+        const data = await response.json();
+        if (data.success) {
+          // Set admin ID
+          setAdminId(data.userId);
+          
+          // Get the organization ID and user details associated with the user
+          const orgResponse = await fetch('/api/get-org-details', {
+            headers: {
+              'user-id': data.userId
+            }
+          });
+          const orgData = await orgResponse.json();
+          if (orgData.success) {
+            setOrgId(orgData.orgId);
+            // Set admin details if available in the response
+            if (orgData.adminEmail) setAdminEmail(orgData.adminEmail);
+            if (orgData.adminDesignation) setAdminRole(orgData.adminDesignation);
+          } else {
+            console.error('Failed to fetch organization details');
           }
-      };
-  
-      fetchOrgId();
+        }
+      } catch (error: any) {
+        console.error('Error in initialization sequence:', 
+          error?.response?.data || error?.message || 'Unknown error'
+        );
+      }
+    };
+
+    fetchOrgId();
   }, []);
   
   // Add pagination state
@@ -174,8 +184,35 @@ export default function TrainingManagement() {
     try {
       await axios.delete(`/api/documents/${docId}`);
       // Remove from local state
+      const deletedDoc = dbDocuments.find(doc => doc.id === docId);
       setDbDocuments(dbDocuments.filter(doc => doc.id !== docId));
       toast.success('Document removed successfully');
+      
+      // Log the document deletion activity
+      try {
+        // For document deletion
+        try {
+          // For document deletion
+          try {
+            await logActivity({
+              action: 'Document removed',
+              adminId: adminId, // Keep for backward compatibility
+              adminEmail: adminEmail,
+              adminDesignation: adminRole,
+              orgId: orgId,
+              collectionType: 'assignment_collection',
+              details: { documentId: docId, documentName: deletedDoc?.name }
+            });
+          } catch (logError) {
+            console.error('Failed to log activity:', logError);
+          }
+        } catch (logError) {
+          console.error('Failed to log activity:', logError);
+        }
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+      }
+      
     } catch (error) {
       console.error('Error deleting document:', error);
       toast.error('Failed to delete document');
@@ -199,7 +236,7 @@ export default function TrainingManagement() {
         "/api/chunks",
         { 
           source: { type: "url", url },
-          orgId: orgId // Add orgId to the request body
+          orgId: orgId
         },
         {
           headers: {
@@ -208,6 +245,28 @@ export default function TrainingManagement() {
         }
       );
       setResponse(res.data.message);
+      
+      // Log the URL submission activity
+      try {
+        // For URL submissions
+        try {
+          await logActivity({
+            action: 'URL reference added',
+            adminId: adminId, // Keep for backward compatibility
+            adminEmail: adminEmail,
+            adminDesignation: adminRole,
+            orgId: orgId,
+            collectionType: 'assignment_collection',
+            details: { url: url }
+          });
+        } catch (logError) {
+          console.error('Failed to log activity:', logError);
+        }
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+        // Don't block the main flow if logging fails
+      }
+      
     } catch (err) {
       const axiosError = err as AxiosError<{ error: string; details?: string }>;
       setError(
@@ -269,6 +328,31 @@ export default function TrainingManagement() {
       };
       setDocuments([...documents, newDoc]);
       
+      // Log the PDF upload activity
+      // For PDF uploads
+      try {
+        // Add this validation before calling logActivity
+        if (!adminEmail) {
+          console.warn('Admin email not available for activity logging');
+          // Optionally show a toast warning
+          toast.error('Some actions may not be fully logged due to missing user details');
+          return; // Skip logging if details aren't available
+        }
+        
+        // Then proceed with logActivity
+        await logActivity({
+          action: 'PDF document uploaded',
+          adminId: adminId, // Keep for backward compatibility
+          adminEmail: adminEmail,
+          adminDesignation: adminRole,
+          orgId: orgId,
+          collectionType: 'assignment_collection',
+          details: { fileName: pdfFile.name, fileSize: pdfFile.size }
+        });
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+      }
+      
       // After successful upload, refresh documents from DB
       fetchDocumentsFromDb();
       
@@ -283,30 +367,31 @@ export default function TrainingManagement() {
       setPdfLoading(false);
     }
   };
-    // Move the handleBehaviorUpdate function here, before the return statement
-    const handleBehaviorUpdate = async () => {
-      setUpdatingBehavior(true);
-      try {
-        const response = await axios.put('/api/update-behaviour', {
-          length: botBehavior.responseLength,
-          outputStructure: botBehavior.outputStructure,
-          tone: botBehavior.tone,
-          personality: botBehavior.personality,
-          mustdo: botBehavior.dos,
-          dondo: botBehavior.donts,
-          orgId: orgId
-        });
-  
-        if (response.status === 200) {
-          toast.success('Bot behavior updated successfully');
-        }
-      } catch (error: any) {
-        console.error('Error updating bot behavior:', error);
-        toast.error(error.response?.data?.error || 'Failed to update bot behavior');
-      } finally {
-        setUpdatingBehavior(false);
+
+  // Bot behavior update handler
+  const handleBehaviorUpdate = async () => {
+    setUpdatingBehavior(true);
+    try {
+      const response = await axios.put('/api/update-behaviour', {
+        length: botBehavior.responseLength,
+        outputStructure: botBehavior.outputStructure,
+        tone: botBehavior.tone,
+        personality: botBehavior.personality,
+        mustdo: botBehavior.dos,
+        dondo: botBehavior.donts,
+        orgId: orgId
+      });
+
+      if (response.status === 200) {
+        toast.success('Bot behavior updated successfully');
       }
-    };
+    } catch (error: any) {
+      console.error('Error updating bot behavior:', error);
+      toast.error(error.response?.data?.error || 'Failed to update bot behavior');
+    } finally {
+      setUpdatingBehavior(false);
+    }
+  };
 
   return (
     <div className="space-y-6" id='training-container'>
@@ -479,6 +564,4 @@ export default function TrainingManagement() {
       </div>
     </div>
   );
-
-
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatafromtoken } from "@/helpers/getDatafromtoken";
 import Org from "@/models/orgModel";
+import User from "@/models/userModel";
 import { connect } from "@/dbconfig/dbconfig";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
         const userId = getDatafromtoken(request);
 
         // 3. Find organization by user ID
-        const org = await Org.findById(userId).select('org_name org_Id');
+        const org = await Org.findById(userId).select('org_name org_Id super_email isSuper');
         
         if (!org) {
             return NextResponse.json({
@@ -21,11 +22,13 @@ export async function GET(request: NextRequest) {
             }, { status: 404 });
         }
 
-        // 4. Return organization details
+        // 4. Return organization and user details
         return NextResponse.json({
             success: true,
-            orgId: org.org_Id,  // Changed from _id to org_Id
-            org_name: org.org_name
+            orgId: org.org_Id,
+            org_name: org.org_name,
+            adminEmail: org.super_email,
+            adminDesignation: org.isSuper ? 'super admin' : 'admin'
         });
 
     } catch (error: any) {

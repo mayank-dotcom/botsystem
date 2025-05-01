@@ -13,6 +13,8 @@ interface Connection {
   name: string;
   url: string;
   databases?: string[];  // Add this line to include the databases array
+  useCustomPrompt?: boolean;
+  customPrompt?: string;
   botBehavior?: {
     tone?: string;
     responseLength?: string;
@@ -20,6 +22,7 @@ interface Connection {
     outputStructure?: string;
     dos?: string;
     donts?: string;
+    who?: string;  // Add this new field
   };
 }
 
@@ -29,6 +32,7 @@ let tone = ""
 let personality = ""
 let mustdo = ""
 let dondo = ""
+let who_variable = ""  // Add this line to declare the variable
 
 // === 1. Load dynamic bot behavior from DB ===
 const client2 = await clientPromise;
@@ -45,25 +49,33 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
   const collection = db.collection("asssignment_collection");
 
   // If we have an embedUrl, try to find matching connection and use its botBehavior
+  let connectionCustomPrompt = null;
   if (embedUrl) {
     try {
       // Find connection with matching URL
       const connection = await connectionsCollection.findOne({ url: embedUrl });
       
-      if (connection && connection.botBehavior) {
-        console.log("Found matching connection for URL:", embedUrl);
-        
-        // Update behavior variables from the connection's botBehavior
-        length = connection.botBehavior.responseLength || "medium";
-        outputStructure = connection.botBehavior.outputStructure || "paragraph";
-        tone = connection.botBehavior.tone || "professional";
-        personality = connection.botBehavior.personality || "helpful";
-        mustdo = connection.botBehavior.dos || "answer the query";
-        dondo = connection.botBehavior.donts || "_";
-        
-        console.log("Using bot behavior from connection:", {
-          length, outputStructure, tone, personality, mustdo, dondo
-        });
+      if (connection) {
+        // Check if this connection uses a custom prompt
+        if (connection.useCustomPrompt && connection.customPrompt) {
+          console.log("Found custom prompt for URL:", embedUrl);
+          connectionCustomPrompt = connection.customPrompt;
+        } else if (connection.botBehavior) {
+          console.log("Found matching connection with botBehavior for URL:", embedUrl);
+          
+          // Update behavior variables from the connection's botBehavior
+          length = connection.botBehavior.responseLength || "medium";
+          outputStructure = connection.botBehavior.outputStructure || "paragraph";
+          tone = connection.botBehavior.tone || "professional";
+          personality = connection.botBehavior.personality || "helpful";
+          mustdo = connection.botBehavior.dos || "_";
+          dondo = connection.botBehavior.donts || "_";
+          who_variable = connection.botBehavior.who || "AI";  // Add this line
+          
+          console.log("Using bot behavior from connection:", {
+            length, outputStructure, tone, personality, mustdo, dondo, who_variable
+          });
+        }
       } else {
         console.log("No matching connection found for URL:", embedUrl);
         // Set default values if no connection found
@@ -71,8 +83,9 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
         outputStructure = "paragraph";
         tone = "professional";
         personality = "helpful";
-        mustdo = "answer the query";
+        mustdo = "_";
         dondo = "_";
+        who_variable = "AI";  // Add this line
       }
     } catch (error) {
       console.error("Error fetching connection for URL:", embedUrl, error);
@@ -81,8 +94,9 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
       outputStructure = "paragraph";
       tone = "professional";
       personality = "helpful";
-      mustdo = "answer the query";
+      mustdo = "_";
       dondo = "_";
+      who_variable = "AI";  // Add this line
     }
   }
 
@@ -174,7 +188,7 @@ export async function getQAChain(customTemplate?: string, rank?: number, embedUr
 
   // After all the variables are set, create the template
   const DEFAULT_BOT_BEHAVIOR_TEMPLATE = `
-You are an AI assistant. Always follow the instructions below precisely.
+You are a ${who_variable} assistant. Always follow the instructions below precisely.
 
 Use only the information provided in {context} to answer the question only if the subject is somewhat related to the {context}.
 
@@ -195,7 +209,8 @@ User question: {question}
 Answer:
 `;
 
-  const template = customTemplate || DEFAULT_BOT_BEHAVIOR_TEMPLATE;
+  // Use connectionCustomPrompt if available, otherwise use provided customTemplate or default
+  const template = connectionCustomPrompt || customTemplate || DEFAULT_BOT_BEHAVIOR_TEMPLATE;
   const prompt = ChatPromptTemplate.fromTemplate(template);
   const combineDocumentsChain = loadQAStuffChain(model, { prompt });
 
