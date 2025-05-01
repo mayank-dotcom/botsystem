@@ -54,9 +54,13 @@ export default function TrainingManagement() {
   const [updatingBehavior, setUpdatingBehavior] = useState<boolean>(false);
 
   // Fetch documents from database on component mount
+  // Modify this useEffect to depend on orgId
   useEffect(() => {
-    fetchDocumentsFromDb();
-  }, []);
+    // Only fetch documents if orgId is available
+    if (orgId) {
+      fetchDocumentsFromDb();
+    }
+  }, [orgId]); // Add orgId as a dependency
 
   // Fetch user's organization ID on component mount
   // Add these state variables at the component level
