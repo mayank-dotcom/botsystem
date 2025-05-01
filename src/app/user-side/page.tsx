@@ -366,22 +366,22 @@ function UsersideInner() {
         {chatHistory.length === 0 && (
           <div id='chatbox2'>
             <div id='resp2'>
-              <i className="fa-solid fa-bolt" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
-              <div className="response-content" style={{ paddingLeft: "64px", color: "#FFD700", whiteSpace: "pre-wrap" }}>
-                <p style={{ marginBottom: "10px" ,color:" #FFD700", fontWeight:"bold"}}>What do you want to discuss today ?</p>
+              <i className="fa-solid fa-bolt golden-gradient-bg" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>
+              <div className="response-content" style={{ paddingLeft: "64px", whiteSpace: "pre-wrap" }}>
+                <p className="golden-gradient" style={{ marginBottom: "10px", fontWeight:"bold"}}>What do you want to discuss today ?</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                   {isLoadingDocuments ? (
                     <p>Loading documents...</p>
                   ) : (
                     availableDocuments.length > 0 ? (
                       availableDocuments.map((doc) => (
-                        <button
+                        <button className='golden-gradient-bg'
                           key={doc.id}
                           onClick={() => setUser({...user, rank: doc.id})}
                           style={{
                             padding: "8px 16px",
-                            background: "#FFD700",
                             color: "black",
+                            fontWeight: "bold",
                             border: "none",
                             borderRadius: "20px",
                             cursor: "pointer",
@@ -418,11 +418,18 @@ function UsersideInner() {
             </div>
             <div id='chatbox2'>
               <div id='resp2'>
-                <i className="fa-solid fa-bolt" id="bolt" style={{backgroundColor:" #FFD700",color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
+                <i className="fa-solid fa-bolt golden-gradient-bg" id="bolt" style={{color:"black",border:"2px solid",borderRadius:"15px",padding:"4px 6px 4px 6px", scale:"90%", fontSize:"15px"}}></i>  
                 <div className="response-content" style={{ paddingLeft: "64px", color: "white", whiteSpace: "pre-wrap" }}>
                   <div 
                     dangerouslySetInnerHTML={{ __html: item.response }}
-                    style={{  color:" #FFD700",fontWeight:"bold" }}
+                    style={{
+                      background: "linear-gradient(160deg, #a54e07, #b47e11, #fef1a2, #bc881b, #a54e07)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundSize: "200% auto",
+                      fontWeight: "bold",
+                      textShadow: "0 1px 1px rgba(0,0,0,0.1)"
+                    }}
                   />
                 </div>
               </div>
