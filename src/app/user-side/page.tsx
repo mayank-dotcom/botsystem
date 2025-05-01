@@ -221,10 +221,10 @@ function UsersideInner() {
     };
   }, []);
   
-  // Check if idle time exceeds 60 seconds (1 minute) and reset chat if it does
+  // Check if idle time exceeds 300 seconds (5 minutes) and reset chat if it does
   useEffect(() => {
-    if (idleTime >= 60 && chatHistory.length > 0) {
-      console.log("User idle for 1 minute, resetting chat interface");
+    if (idleTime >= 300 && chatHistory.length > 0) { // Changed from 60 to 300 seconds
+      console.log("User idle for 5 minutes, resetting chat interface");
       setChatHistory([]);
       setIdleTime(0);
       

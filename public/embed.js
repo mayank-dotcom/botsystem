@@ -4,7 +4,7 @@
     apiBaseUrl: window.location.origin, // Will use the host site as base for API calls
     containerId: 'embedded-chatbot',
     targetUrl: null, // New property to store manually provided URL
-    idleTimeout: 60000, // 1 minute in milliseconds
+    idleTimeout: 300000, // 5 minutes in milliseconds (changed from 60000)
     chatbotStyles: `
       #embedded-chatbot-container {
         position: fixed;
