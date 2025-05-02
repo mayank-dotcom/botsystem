@@ -14,6 +14,9 @@ export const connectToMongoDB = async () => {
   try {
     const options = {
       dbName: "asssignment_final",  // Explicitly set the database name
+      serverSelectionTimeoutMS: 30000, // Timeout for server selection
+      socketTimeoutMS: 45000, // How long sockets to the server stay active
+      connectTimeoutMS: 30000, // Timeout for initial connection
     };
 
     await mongoose.connect(MONGODB_URI, options);

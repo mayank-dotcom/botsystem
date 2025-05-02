@@ -1,0 +1,32 @@
+[{
+  "_id": {
+    "$oid": "6814790866606d979619a5b1"
+  },
+  "userId": "user_s93kbsj5t",
+  "conversationId": "1",
+  "messageId": "681478f066606d979619a5a9",
+  "feedbackType": "like",
+  "reportReason": "",
+  "timestamp": {
+    "$date": "2025-05-02T07:49:28.704Z"
+  },
+  "botResponse": "I'm here to assist you in English, and I appreciate your understanding. If you have any questions or need help with a specific topic, please feel free to ask, and I'll do my best to assist you. _",
+  "userQuestion": "can we talk in hindi because i don;t get engliish ?",
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68147a8966606d979619a5bd"
+  },
+  "userId": "user_s93kbsj5t",
+  "conversationId": "1",
+  "messageId": "681478f066606d979619a5a9",
+  "feedbackType": "dislike",
+  "reportReason": "",
+  "timestamp": {
+    "$date": "2025-05-02T07:55:53.144Z"
+  },
+  "botResponse": "I'm here to assist you in English, and I appreciate your understanding. If you have any questions or need help with a specific topic, please feel free to ask, and I'll do my best to assist you. _",
+  "userQuestion": "can we talk in hindi because i don;t get engliish ?",
+  "__v": 0
+}]

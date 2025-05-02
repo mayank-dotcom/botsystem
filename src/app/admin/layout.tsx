@@ -58,13 +58,7 @@ export default function AdminLayout({
             <ChatBubbleLeftIcon className="w-4 h-4" />
             Chat History
           </Link>
-          <Link
-            href="/admin/feedback"
-            className={pathname === '/admin/feedback' ? 'active' : ''}
-          >
-            <DocumentTextIcon className="w-4 h-4" />
-            Feedback
-          </Link>
+   
           <Link
             href="/admin/training"
             className={pathname === '/admin/training' ? 'active' : ''}

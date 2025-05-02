@@ -7,6 +7,7 @@ import React, { useEffect, useState, useRef, Suspense } from 'react'
 import { toast } from "react-hot-toast"
 import axios from 'axios';
 import { useSearchParams } from 'next/navigation';
+import mongoose from 'mongoose';
 
 // Inner component that uses useSearchParams
 function UsersideInner() {
@@ -21,6 +22,7 @@ function UsersideInner() {
     question: string;
     response: string;
     timestamp?: Date;
+    messageId?: string; // Add messageId field to store the message's ObjectId
   }
 
   // Define interface for document items
@@ -282,19 +284,21 @@ function UsersideInner() {
           console.log(result.data.text);
           setLoading(false);
           
-          // Update the last chat item with the response
+          // Update the last chat item with the response and messageId
           setChatHistory(prevHistory => {
             const updatedHistory = [...prevHistory];
             updatedHistory[updatedHistory.length - 1].response = result.data.text;
+            updatedHistory[updatedHistory.length - 1].messageId = result.data.messageId; // Store the messageId
             return updatedHistory;
           });
-
+          
           // If embedded, send the response back to the parent
           if (isEmbedded) {
             window.parent.postMessage({
               type: 'CHATBOT_RESPONSE',
               response: result.data.text,
-              question: currentQuestion
+              question: currentQuestion,
+              messageId: result.data.messageId // Include messageId in the message
             }, '*');
           }
         } else {
@@ -356,6 +360,150 @@ function UsersideInner() {
     fetchHistory();
   }, [user.userId]);
 
+  // Add this state for tracking feedback submissions
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<{[key: string]: boolean}>({});
+  
+  // Add this function to handle feedback
+  // Add mongoose import at the top
+  
+  // In the handleFeedback function, modify the feedbackTypes creation:
+  const handleFeedback = async (item: HistoryItem, feedbackType: 'like' | 'dislike' | 'report') => {
+  try {
+    // Use the message's messageId if available, otherwise generate a new one
+    const messageId = item.messageId || new mongoose.Types.ObjectId().toString();
+    
+    // Check if feedback was already submitted for this message
+    const feedbackKey = `${messageId}_${feedbackType}`;
+    if (feedbackSubmitted[feedbackKey]) {
+      toast.error("You've already submitted this feedback for this message");
+      return;
+    }
+    
+    // For report type, prompt for reason
+    let reportReason = "";
+    if (feedbackType === 'report') {
+      reportReason = prompt("Please provide a reason for reporting this response:") || "";
+      if (!reportReason) return; // Cancel if no reason provided
+    }
+    
+    // Determine the base URL for API calls
+    let apiBaseUrl = '';
+    if (isEmbedded) {
+      apiBaseUrl = window.location.origin;
+    }
+    
+    // Create feedbackTypes object with the selected type set to true
+    const feedbackTypes = {
+      like: feedbackType === 'like',
+      dislike: feedbackType === 'dislike',
+      report: feedbackType === 'report',
+      retry: false
+    };
+    
+    // Submit feedback to API
+    const response = await axios.post(`${apiBaseUrl}/api/feedback`, {
+      userId: user.userId,
+      conversationId: user.rank.toString(),
+      messageId, // Use the message's actual messageId
+      feedbackTypes, // Send the object instead of the string
+      reportReason,
+      botResponse: item.response,
+      userQuestion: item.question
+    });
+    
+    if (response.data.success) {
+      // Mark this feedback as submitted
+      setFeedbackSubmitted(prev => ({
+        ...prev,
+        [feedbackKey]: true
+      }));
+      
+      // Show success message
+      toast.success(`Thank you for your ${feedbackType} feedback!`);
+      
+      // If embedded, notify parent
+      if (isEmbedded) {
+        window.parent.postMessage({
+          type: 'CHATBOT_FEEDBACK',
+          feedbackType,
+          messageId
+        }, '*');
+      }
+    } else {
+      toast.error("Failed to submit feedback. Please try again.");
+    }
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+    toast.error("An error occurred while submitting feedback");
+  }
+  };
+
+  // Similarly update the handleRetryCount function:
+  const handleRetryCount = async (item: HistoryItem, retryCount: number) => {
+  try {
+    // Use the message's messageId if available, otherwise generate a new one
+    const messageId = item.messageId || new mongoose.Types.ObjectId().toString();
+    
+    // Check if feedback was already submitted for this message
+    const feedbackKey = `${messageId}_retry`;
+    if (feedbackSubmitted[feedbackKey]) {
+      toast.error("You've already submitted retry count for this message");
+      return;
+    }
+    
+    // Determine the base URL for API calls
+    let apiBaseUrl = '';
+    if (isEmbedded) {
+      apiBaseUrl = window.location.origin;
+    }
+    
+    // Create feedbackTypes object with retry set to true
+    const feedbackTypes = {
+      like: false,
+      dislike: false,
+      report: false,
+      retry: true // We're setting retry to true
+    };
+    
+    // Submit feedback to API
+    const response = await axios.post(`${apiBaseUrl}/api/feedback`, {
+      userId: user.userId,
+      conversationId: user.rank.toString(),
+      messageId, // Use the message's actual messageId
+      feedbackTypes, // Send the object instead of the string
+      retryCount,
+      botResponse: item.response,
+      userQuestion: item.question
+    });
+    
+    if (response.data.success) {
+      // Mark this feedback as submitted
+      setFeedbackSubmitted(prev => ({
+        ...prev,
+        [feedbackKey]: true
+      }));
+      
+      // Show success message
+      toast.success(`Thank you for your feedback! Retry count: ${retryCount}`);
+      
+      // If embedded, notify parent
+      if (isEmbedded) {
+        window.parent.postMessage({
+          type: 'CHATBOT_FEEDBACK',
+          feedbackType: 'retry',
+          retryCount,
+          messageId
+        }, '*');
+      }
+    } else {
+      toast.error("Failed to submit retry count. Please try again.");
+    }
+  } catch (error) {
+    console.error("Error submitting retry count:", error);
+    toast.error("An error occurred while submitting retry count");
+  }
+  };
+
   // Add a class to the container when embedded
   const containerClass = isEmbedded ? 'user-container-embedded' : 'user-container';
 
@@ -377,7 +525,17 @@ function UsersideInner() {
                       availableDocuments.map((doc) => (
                         <button className='golden-gradient-bg'
                           key={doc.id}
-                          onClick={() => setUser({...user, rank: doc.id})}
+                          onClick={() => {
+                            setUser({...user, rank: doc.id});
+                            // Add the selected document to chat history with hardcoded response
+                            setChatHistory(prevHistory => [
+                              ...prevHistory,
+                              { 
+                                question: `Selected: ${doc.title}`, 
+                                response: "Ok let me help you out. tell me your problem now" 
+                              }
+                            ]);
+                          }}
                           style={{
                             padding: "8px 16px",
                             color: "black",
@@ -431,6 +589,119 @@ function UsersideInner() {
                       textShadow: "0 1px 1px rgba(0,0,0,0.1)"
                     }}
                   />
+                  <div className="feedback-buttons" style={{ 
+                    marginTop: "10px", 
+                    display: "flex", 
+                    gap: "12px", 
+                    justifyContent: "flex-start"
+                  }}>
+                    <button 
+                      onClick={() => handleFeedback(item, 'like')}
+                      className="feedback-button like"
+                      style={{
+                        background: "rgba(0, 0, 0, 0.2)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#4CAF50",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer"
+                      }}
+                      title="Like"
+                    >
+                      <i className="fa-solid fa-thumbs-up"></i>
+                    </button>
+                    <button 
+                      onClick={() => handleFeedback(item, 'dislike')}
+                      className="feedback-button dislike"
+                      style={{
+                        background: "rgba(0, 0, 0, 0.2)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#F44336",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer"
+                      }}
+                      title="Dislike"
+                    >
+                      <i className="fa-solid fa-thumbs-down"></i>
+                    </button>
+                    <button 
+                      onClick={() => handleFeedback(item, 'report')}
+                      className="feedback-button report"
+                      style={{
+                        background: "rgba(0, 0, 0, 0.2)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#FF9800",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer"
+                      }}
+                      title="Report"
+                    >
+                      <i className="fa-solid fa-flag"></i>
+                    </button>
+                    <div 
+                      className="feedback-button retry"
+                      style={{
+                        background: "rgba(0, 0, 0, 0.2)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#2196F3",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer",
+                        position: "relative"
+                      }}
+                      title="Retry count"
+                    >
+                      <i className="fa-solid fa-rotate"></i>
+                      <div className="retry-dropdown" style={{
+                        position: "absolute",
+                        bottom: "100%",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        display: "none",
+                        background: "#333",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+                        zIndex: 10,
+                        minWidth: "120px"
+                      }}>
+                        <div className="retry-dropdown-content">
+                          <p style={{ margin: "0 0 8px 0", textAlign: "center", color: "white", fontSize: "14px" }}>How many retries?</p>
+                          {[1, 2, 3, 4, 5].map((count) => (
+                            <button 
+                              key={count} 
+                              onClick={() => handleRetryCount(item, count)}
+                              className="retry-option"
+                            >
+                              {count}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

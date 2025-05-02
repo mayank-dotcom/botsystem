@@ -3,6 +3,7 @@ import './style.css';
 
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import mongoose from 'mongoose';
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -14,6 +15,7 @@ import {
 interface Message {
   role: 'user' | 'bot';
   content: string;
+  _id?: string; // Add _id field to store message ObjectId
 }
 
 interface Conversation {
@@ -24,8 +26,10 @@ interface Conversation {
   timestamp: string;
   org_Id?: string;
   url?: string;
+  messageId?: string; // Add this property to fix the error
 }
 
+// Update the GroupedConversation interface to include reportReason
 interface GroupedConversation {
   id: string;
   userId: string;
@@ -34,6 +38,15 @@ interface GroupedConversation {
   messages: Message[];
   date?: string; // Added for filtering
   time?: string; // Added for filtering
+  feedbackTypes?: { // Change from single type to object with multiple types
+    like?: boolean;
+    dislike?: boolean;
+    report?: boolean;
+    retry?: boolean;
+  };
+  reportReason?: string; // Added for report reason
+  retryCount?: number; // Added for retry count
+  timestamp?: number; // Added for timestamp matching
 }
 
 export default function ChatHistory() {
@@ -47,6 +60,8 @@ export default function ChatHistory() {
   const [orgId, setOrgId] = useState('');
   const [botConnections, setBotConnections] = useState<{[key: string]: string}>({});
   const [urlToBotMap, setUrlToBotMap] = useState<{[key: string]: string}>({});
+  // Update the feedbackMap state to handle the new structure
+  const [feedbackMap, setFeedbackMap] = useState<{[key: string]: { type: string; reason?: string }}>({});
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -74,18 +89,22 @@ export default function ChatHistory() {
   useEffect(() => {
     const fetchOrgId = async () => {
       try {
+        console.log('Fetching organization details...');
         const response = await axios.get('/api/get-org-details');
+        console.log('Organization details response:', response.data);
         if (response.data.success) {
           setOrgId(response.data.orgId);
+          console.log('Organization ID set:', response.data.orgId);
         } else {
           setError('Failed to fetch organization details');
+          console.error('Failed to fetch organization details:', response.data.message);
         }
       } catch (err) {
         console.error('Error fetching organization ID:', err);
         setError('Error fetching organization details');
       }
     };
-
+  
     fetchOrgId();
   }, []);
 
@@ -147,6 +166,8 @@ export default function ChatHistory() {
           const history = response.data.history || [];
           const groupedConversations: {[key: string]: GroupedConversation} = {};
           const botSet = new Set<string>();
+          const userIds = new Set<string>();
+          const messageIds = new Set<string>();
           
           // Add all bots from the response to the available bots list
           const allBots = response.data.allBots || [];
@@ -158,6 +179,7 @@ export default function ChatHistory() {
           
           history.forEach((item: Conversation) => {
             const userId = item.userId;
+            userIds.add(userId);
             const timestamp = new Date(item.timestamp);
             const groupKey = `${userId}-${timestamp.getTime()}`;
             
@@ -171,6 +193,7 @@ export default function ChatHistory() {
             
             botSet.add(botName);
             
+            // In the fetchChatHistory function, update how conversations are created
             if (!groupedConversations[groupKey]) {
               groupedConversations[groupKey] = {
                 id: groupKey,
@@ -179,21 +202,83 @@ export default function ChatHistory() {
                 botName: botName,
                 messages: [],
                 date: timestamp.toLocaleDateString(),
-                time: timestamp.toLocaleTimeString()
+                time: timestamp.toLocaleTimeString(),
+                timestamp: timestamp.getTime() // Store the timestamp for feedback matching
               };
             }
             
-            // Add user question
+            // Use the original messageId from the database
+            const messageId = item.messageId || item._id;
+            messageIds.add(messageId);
+            console.log('Created user message with ID:', messageId);
             groupedConversations[groupKey].messages.push({
               role: 'user',
-              content: item.question
+              content: item.question,
+              _id: messageId
             });
             
-            // Add bot response
+            // Use the same messageId for bot response
+            console.log('Created bot message with ID:', messageId);
             groupedConversations[groupKey].messages.push({
               role: 'bot',
-              content: item.response
+              content: item.response,
+              _id: messageId
             });
+          });
+          
+          // Fetch feedback for all messages
+          const feedbackPromises = Array.from(messageIds).map(async (messageId) => {
+            try {
+              console.log('Fetching feedback for messageId:', messageId);
+              const feedbackResponse = await axios.get('/api/get-feedback', {
+                params: { messageId }
+              });
+              console.log('Feedback response:', feedbackResponse.data);
+              return feedbackResponse.data;
+            } catch (err) {
+              console.error(`Error fetching feedback for message ${messageId}:`, err);
+              return { success: false };
+            }
+          });
+          
+          const feedbackResults = await Promise.all(feedbackPromises);
+          console.log('All feedback results:', feedbackResults.length);
+          
+          // Process feedback results
+          feedbackResults.forEach(result => {
+            if (result.success && result.feedbackMap) {
+              // Apply feedback to conversations
+              Object.entries(result.feedbackMap).forEach(([messageId, feedbackData]) => {
+                // Add type assertion to fix the TypeScript error
+                const feedback = feedbackData as { type: string; reason?: string; retryCount?: number };
+                
+                // Find the conversation containing this message
+                Object.values(groupedConversations).forEach(conversation => {
+                  conversation.messages.forEach(message => {
+                    if (message._id === messageId) {
+                      // Initialize feedbackTypes if it doesn't exist
+                      if (!conversation.feedbackTypes) {
+                        conversation.feedbackTypes = {};
+                      }
+                      
+                      // Set the appropriate feedback type flag
+                      if (feedback.type === 'like') conversation.feedbackTypes.like = true;
+                      if (feedback.type === 'dislike') conversation.feedbackTypes.dislike = true;
+                      if (feedback.type === 'report') conversation.feedbackTypes.report = true;
+                      if (feedback.type === 'retry') conversation.feedbackTypes.retry = true;
+                      
+                      // Store additional feedback data
+                      if (feedback.reason) {
+                        conversation.reportReason = feedback.reason;
+                      }
+                      if (feedback.retryCount) {
+                        conversation.retryCount = feedback.retryCount;
+                      }
+                    }
+                  });
+                });
+              });
+            }
           });
           
           setConversations(Object.values(groupedConversations));
@@ -262,97 +347,85 @@ export default function ChatHistory() {
     setBotFilter('');
   };
 
+  // Function to get feedback status display
+  const getFeedbackStatus = (conversation: GroupedConversation) => {
+    if (!conversation.feedbackTypes) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          {conversation.messages.length / 2} messages
+        </span>
+      );
+    }
+    
+    // Create an array to hold all feedback badges
+    const feedbackBadges = [];
+    
+    // Add badges for each feedback type
+    if (conversation.feedbackTypes.like) {
+      feedbackBadges.push(
+        <span key="like" className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-1">
+          Positive
+        </span>
+      );
+    }
+    
+    if (conversation.feedbackTypes.dislike) {
+      feedbackBadges.push(
+        <span key="dislike" className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-1">
+          Negative
+        </span>
+      );
+    }
+    
+    if (conversation.feedbackTypes.report) {
+      feedbackBadges.push(
+        <span key="report" className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mr-1">
+          <i className="fa-solid fa-triangle-exclamation mr-1"></i>
+          Reported
+        </span>
+      );
+    }
+    
+    if (conversation.feedbackTypes.retry && conversation.retryCount) {
+      feedbackBadges.push(
+        <span key="retry" className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">
+          <i className="fa-solid fa-rotate mr-1"></i>
+          Retries: {conversation.retryCount}
+        </span>
+      );
+    }
+    
+    // If no feedback badges were added, show message count
+    if (feedbackBadges.length === 0) {
+      feedbackBadges.push(
+        <span key="default" className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          {conversation.messages.length / 2} messages
+        </span>
+      );
+    }
+    
+    // Return a fragment containing all badges
+    return <>{feedbackBadges}</>;
+  };
+
+  // Function to get conversation row class based on feedback type
+  const getConversationRowClass = (conversation: GroupedConversation) => {
+    const baseClass = `p-4 cursor-pointer hover:bg-gray-50 ${
+      selectedConversation?.id === conversation.id ? 'bg-indigo-50' : ''
+    }`;
+    
+    if (conversation.feedbackTypes?.report) {
+      return `${baseClass} bg-red-100`;
+    }
+    
+    return baseClass;
+  };
+
   return (
     <div className="space-y-6" id='chathistcontain'>
       <div className="flex items-center justify-between" id='chhsit'>
         <h1 className="text-2xl font-bold text-gray-900">Chat History</h1>
-        <div className="flex items-center space-x-4" id='searchfilter'>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search conversations..."
-              className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2" />
-          </div>
-          <div className="relative" ref={filterRef}>
-            <button 
-              className="flex items-center px-4 py-2 border rounded-lg hover:bg-gray-50"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <FunnelIcon className="h-5 w-5 mr-2 text-gray-400" />
-              Filter
-              {(dateFilter || timeFilter || botFilter) && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                  Active
-                </span>
-              )}
-            </button>
-            
-            {showFilters && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg z-10 p-4 border">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-medium text-gray-700">Filters</h3>
-                  <button 
-                    onClick={clearFilters}
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                  >
-                    Clear all
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  {/* Date Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border rounded-md text-sm"
-                      value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* Time Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Time
-                    </label>
-                    <input
-                      type="time"
-                      className="w-full px-3 py-2 border rounded-md text-sm"
-                      value={timeFilter}
-                      onChange={(e) => setTimeFilter(e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* Bot Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bot
-                    </label>
-                    <select
-                      className="w-full px-3 py-2 border rounded-md text-sm"
-                      value={botFilter}
-                      onChange={(e) => setBotFilter(e.target.value)}
-                    >
-                      <option value="">All Bots</option>
-                      {availableBots.map((bot, index) => (
-                        <option key={index} value={bot}>
-                          {bot}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        
       </div>
 
       {/* Active filters display */}
@@ -391,8 +464,92 @@ export default function ChatHistory() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id='twocards'>
         {/* Conversation List */}
         <div className="lg:col-span-1 bg-white shadow rounded-lg" id='conversation-list'>
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-medium">Conversations</h2>
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="relative flex-grow mr-2">
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                className="pl-10 pr-4 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2" />
+            </div>
+            <div className="relative" ref={filterRef}>
+              <button 
+                className="flex items-center px-4 py-2 border rounded-lg hover:bg-gray-50"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <FunnelIcon className="h-5 w-5 mr-2 text-gray-400" />
+                Filter
+                {(dateFilter || timeFilter || botFilter) && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                    Active
+                  </span>
+                )}
+              </button>
+              
+              {showFilters && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg z-10 p-4 border">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+                    <button 
+                      onClick={clearFilters}
+                      className="text-xs text-indigo-600 hover:text-indigo-800"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* Date Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                      />
+                    </div>
+                    
+                    {/* Time Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Time
+                      </label>
+                      <input
+                        type="time"
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                        value={timeFilter}
+                        onChange={(e) => setTimeFilter(e.target.value)}
+                      />
+                    </div>
+                    
+                    {/* Bot Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Bot
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                        value={botFilter}
+                        onChange={(e) => setBotFilter(e.target.value)}
+                      >
+                        <option value="">All Bots</option>
+                        {availableBots.map((bot, index) => (
+                          <option key={index} value={bot}>
+                            {bot}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
           {loading ? (
@@ -406,9 +563,7 @@ export default function ChatHistory() {
               {filteredConversations.map((conversation) => (
                 <div
                   key={conversation.id}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${
-                    selectedConversation?.id === conversation.id ? 'bg-indigo-50' : ''
-                  }`}
+                  className={getConversationRowClass(conversation)}
                   onClick={() => setSelectedConversation(conversation)}
                 >
                   <div className="flex justify-between items-start">
@@ -423,9 +578,7 @@ export default function ChatHistory() {
                         Bot: {conversation.botName}
                       </p>
                     </div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {conversation.messages.length / 2} messages
-                    </span>
+                    {getFeedbackStatus(conversation)}
                   </div>
                   {conversation.messages.length > 0 && (
                     <p className="mt-2 text-sm text-gray-600 truncate">
@@ -447,34 +600,56 @@ export default function ChatHistory() {
             <div className="h-full flex flex-col">
               <div className="p-4 border-b">
                 <h2 className="text-lg font-medium">Conversation Details</h2>
-                <p className="text-sm text-gray-500">Bot: {selectedConversation.botName}</p>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-500">Bot: {selectedConversation.botName}</p>
+                  <div className="flex items-center">
+                    {selectedConversation.feedbackTypes?.report && selectedConversation.reportReason && (
+                      <span className="mr-3 text-sm text-red-600">
+                        <i className="fa-solid fa-circle-info mr-1"></i>
+                        Reason: {selectedConversation.reportReason}
+                      </span>
+                    )}
+                    {selectedConversation.feedbackTypes && (
+                      <div>
+                        {getFeedbackStatus(selectedConversation)}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {selectedConversation.messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
+                {selectedConversation.messages.map((message, index) => {
+                  console.log('Displaying message with ID:', message._id);
+                  return (
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        message.role === 'user'
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                      key={index}
+                      className={`flex ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      {message.role === 'user' ? (
-                        <p className="text-sm">{message.content}</p>
-                      ) : (
-                        <div 
-                          className="text-sm"
-                          dangerouslySetInnerHTML={{ __html: message.content }}
-                        />
-                      )}
+                      <div
+                        className={`max-w-[70%] rounded-lg p-3 ${
+                          message.role === 'user'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-900'
+                        }`}
+                      >
+                        {/* Add message ID display */}
+                        <div className="text-xs opacity-70 mb-1">
+                          ID: {message._id}
+                        </div>
+                        {message.role === 'user' ? (
+                          <p className="text-sm">{message.content}</p>
+                        ) : (
+                          <div 
+                            className="text-sm"
+                            dangerouslySetInnerHTML={{ __html: message.content }}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="p-4 border-t">
                 <button className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
@@ -483,7 +658,7 @@ export default function ChatHistory() {
               </div>
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500">
+            <div className="h-full flex items-center justify-center p-6 text-gray-500">
               Select a conversation to view details
             </div>
           )}

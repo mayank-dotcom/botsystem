@@ -563,3 +563,147 @@ body {
   background: linear-gradient(160deg, #a54e07, #b47e11, #fef1a2, #bc881b, #a54e07);
   background-size: 200% auto;
 }
+/* Add active state styles for feedback buttons */
+.feedback-button.active, .retry-option.active {
+  background-color: rgba(255, 215, 0, 0.3);
+  transform: scale(1.1);
+}
+
+.feedback-button.like.active {
+  color: #4CAF50;
+  border-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.feedback-button.dislike.active {
+  color: #F44336;
+  border-color: #F44336;
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.feedback-button.report.active {
+  color: #FF9800;
+  border-color: #FF9800;
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+.feedback-button.retry.active {
+  color: #2196F3;
+  border-color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+/* Add submit button styles */
+.feedback-button.submit {
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.feedback-button.submit:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+  transform: scale(1.1);
+}
+
+.feedback-button.like:hover {
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.feedback-button.dislike:hover {
+  color: #F44336;
+  border-color: #F44336;
+}
+
+.feedback-button.report:hover {
+  color: #FF9800;
+  border-color: #FF9800;
+}
+
+/* Add these styles for retry count button and dropdown */
+.feedback-button.retry {
+  position: relative;
+  color: #FFD700;
+  border-color: #FFD700;
+}
+
+.feedback-button.retry:hover {
+  color: #2196F3;
+  border-color: #2196F3;
+}
+
+.retry-dropdown {
+  display: none;
+  position: absolute;
+  bottom: 40px;
+  right: -50px;
+  background-color: #333;
+  border-radius: 8px;
+  padding: 10px;
+  width: 150px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.feedback-button.retry:hover .retry-dropdown {
+  display: block;
+}
+
+.retry-dropdown-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.retry-dropdown-content p {
+  color: white;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.retry-option {
+  background: none;
+  border: 1px solid #2196F3;
+  color: #2196F3;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 3px;
+  transition: all 0.2s ease;
+}
+
+.retry-option:hover {
+  background-color: #2196F3;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Make the retry options display in a row */
+.retry-dropdown-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.retry-dropdown-content div {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+/* Add these styles to your userside.css file */
+.feedback-button:hover {
+  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+.retry:hover .retry-dropdown {
+  display: block !important;
+}
+
+.retry-option:hover {
+  background: rgba(33, 150, 243, 0.4) !important;
+}

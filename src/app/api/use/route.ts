@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getQAChain } from "@/app/api/ai/ai";
 import clientPromise from "@/dbconfig/dbconfig";
+import { ObjectId } from "mongodb";
 
 interface QAChainResult {
   text: string;
@@ -15,6 +16,7 @@ interface ConversationHistory {
   timestamp: Date;
   org_Id?: string;  // Added optional org_Id field
   url?: string;     // Added optional url field
+  messageId?: string; // Added optional messageId field
 }
 
 export async function POST(request: NextRequest) {
@@ -96,11 +98,15 @@ export async function POST(request: NextRequest) {
 
     // 4. Store history with org_Id and url if matched
     try {
+      // Generate a new ObjectId for this message
+      const messageId = new ObjectId().toString();
+      
       const historyEntry: ConversationHistory = {
         userId,
         question,
         response: responseText,
         timestamp: new Date(),
+        messageId, // Add the messageId field
       };
       
       // Add org_Id and url to history entry if matched
@@ -114,11 +120,21 @@ export async function POST(request: NextRequest) {
       
       await historyCollection.insertOne(historyEntry);
       console.log("Saved conversation history with additional fields:", 
+        messageId ? "messageId: " + messageId : "No messageId",
         matchedOrgId ? "org_Id: " + matchedOrgId : "No org_Id match",
         matchedUrl ? "url: " + matchedUrl : "No URL match"
       );
+      
+      // Return the messageId along with the response text
+      return NextResponse.json({ 
+        text: responseText,
+        messageId: messageId 
+      });
+      
     } catch (storageError) {
       console.error("History storage error:", storageError);
+      // Still return the response even if storage fails
+      return NextResponse.json({ text: responseText });
     }
 
     return NextResponse.json({ text: responseText });

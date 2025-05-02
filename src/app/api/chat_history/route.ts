@@ -3,6 +3,7 @@
 
 import clientPromise from "@/dbconfig/dbconfig";
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 
 interface ConversationHistory {
     userId: string;
@@ -11,6 +12,7 @@ interface ConversationHistory {
     timestamp: Date;
     org_Id?: string;
     url?: string;
+    messageId?: string; // Added messageId field to store MongoDB ObjectId as string
 }
 
 export async function POST(req: NextRequest) {
