@@ -1,7 +1,8 @@
 "use server";
 
 import { MongoClient, Collection } from "mongodb";
-// Remove OpenAI embeddings import
+// Add OpenAI embeddings import
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { CharacterTextSplitter } from "langchain/text_splitter";
 import { NextRequest, NextResponse } from "next/server";
 import * as dotenv from "dotenv";
@@ -134,6 +135,12 @@ export async function POST(req: NextRequest) {
     chunkOverlap: 100,
   });
 
+  // Initialize OpenAI embeddings model
+  const embeddingModel = new OpenAIEmbeddings({
+    openAIApiKey: process.env.OPENAI_API_KEY!,
+    modelName: "text-embedding-ada-002", // You can also use "text-embedding-3-small" or "text-embedding-3-large" for newer models
+  });
+
   const client = new MongoClient(process.env.MONGODB_URI as string);
   
   // Create an array to store all log messages
@@ -205,6 +212,11 @@ export async function POST(req: NextRequest) {
     let totalInputTokens = 0;
     let totalCharacters = 0;
     let documentTokenCounts: any[] = [];
+    
+    // Connect to MongoDB
+    await client.connect();
+    const db = client.db("asssignment_final");
+    const collection: Collection = db.collection("asssignment_collection");
     
     while (urlsToVisit.length > 0 && pagesVisited < MAX_PAGES) {
       const currentUrl = urlsToVisit.shift()!;
@@ -402,23 +414,70 @@ export async function POST(req: NextRequest) {
             chunkedText.push(tempText.trim());
           }
           
-          // Count tokens and characters for each chunk
-          for (const chunk of chunkedText) {
+          // Create documents for embedding
+          const documents = await splitter.createDocuments(
+            chunkedText,
+            chunkedText.map(() => ({ source: currentUrl }))
+          );
+          
+          logUrl(`Chunked text into ${documents.length} chunks.`);
+          
+          // Count tokens and characters for each chunk and generate embeddings
+          for (const doc of documents) {
             try {
-              const tokenCount = await countTokensGPT4(chunk);
-              const charCount = countCharacters(chunk);
+              const tokenCount = await countTokensGPT4(doc.pageContent);
+              const charCount = countCharacters(doc.pageContent);
               
               totalInputTokens += tokenCount;
               totalCharacters += charCount;
               
               documentTokenCounts.push({
                 url: currentUrl,
-                content: chunk.substring(0, 50) + "...",
+                content: doc.pageContent.substring(0, 50) + "...",
                 tokens: tokenCount,
                 characters: charCount
               });
               
               logUrl(`Chunk stats - Tokens: ${tokenCount}, Characters: ${charCount}`);
+              
+              // Clean text for embedding
+              const text = String(doc.pageContent)
+                .trim()
+                // Remove all special characters and keep only basic text
+                .replace(/[^a-zA-Z0-9\s]/g, ' ')
+                // Normalize whitespace
+                .replace(/\s+/g, ' ')
+                .trim();
+              
+              // Generate embedding and store in MongoDB
+              if (text.length > 0) {
+                try {
+                  // Truncate if needed
+                  let processedText = text;
+                  if (text.length > 1024) {
+                    logUrl('Text too long, truncating to 1024 characters');
+                    // Clean truncation at word boundary
+                    const words = text.substring(0, 1024).split(' ');
+                    words.pop(); // Remove potentially partial word
+                    processedText = words.join(' ');
+                  }
+                  
+                  // Generate embedding
+                  const embedding = await embeddingModel.embedQuery(processedText);
+                  
+                  // Store in MongoDB
+                  await collection.insertOne({
+                    content: processedText,
+                    metadata: { ...doc.metadata, crawledFrom: currentUrl },
+                    embedding,
+                    org_Id: orgId
+                  });
+                  
+                  logUrl(`Successfully stored embedding for chunk from ${currentUrl}`);
+                } catch (embeddingError: unknown) {
+                  logUrl(`Error with embedding model: ${embeddingError instanceof Error ? embeddingError.message : String(embeddingError)}`);
+                }
+              }
             } catch (err: any) {
               logUrl(`Error processing chunk: ${err.message}`);
             }
