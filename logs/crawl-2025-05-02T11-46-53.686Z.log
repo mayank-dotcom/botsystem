@@ -1,0 +1,28 @@
+Crawl started at: 2025-05-02T11:46:53.686Z
+Base URL: https://example.com
+Organization ID: 681474894811786417df4ed2
+-------------------------------------------
+[1/100] Navigating to: https://example.com
+Page loaded successfully: https://example.com
+Scrolling completed
+Found 0 links on the page
+Current queue size: 0 URLs
+Extracted text content, length: 411
+Chunked text into 1 chunks.
+Chunk stats - Tokens: 64, Characters: 280
+Successfully stored embedding for chunk from https://example.com
+-------------------------------------------
+Token and character counts by document: [
+  {
+    "url": "https://example.com",
+    "content": "Example Domain\n    This domain is for use in illus...",
+    "tokens": 64,
+    "characters": 280
+  }
+]
+Total document tokens: 64
+Total document characters: 280
+Request overhead tokens: 15
+Estimated output tokens: 0
+Grand total tokens: 79
+-------------------------------------------

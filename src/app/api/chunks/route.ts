@@ -181,15 +181,24 @@ export async function POST(req: NextRequest) {
     logUrl(`Organization ID: ${orgId}`);
     logUrl('-------------------------------------------');
 
-    // Launch browser with headless: false to see the window
+    // Launch browser with environment-specific configuration
     const browser = await puppeteer.launch({ 
-      headless: false,
-      defaultViewport: null, // Disable the default viewport
-      args: [
-        '--start-maximized', // Start the browser maximized
-        '--force-device-scale-factor=1', // Force 100% zoom level
-        '--disable-pinch' // Disable pinch zooming
-      ]
+    // Use headless mode in production environments
+    headless: process.env.NODE_ENV === 'production' ? true : false,
+    defaultViewport: null, // Disable the default viewport
+    args: [
+    '--start-maximized', // Start the browser maximized
+    '--force-device-scale-factor=1', // Force 100% zoom level
+    '--disable-pinch', // Disable pinch zooming
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--single-process', // <- this one doesn't work in Windows
+    '--disable-gpu'
+    ]
     });
     
     // Extract domain from source URL to identify internal links
